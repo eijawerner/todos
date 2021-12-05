@@ -1,0 +1,28 @@
+{
+  "name": "awesome-todos-frontend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/eijawerner/todos.git",
+  "author": "Eija Werner <github@eija.se>",
+  "license": "MIT",
+  "scripts": {
+    "build": "webpack --mode production --progress --hide-modules",
+    "ts-compile": "yarn tsc --noEmit",
+    "dev": "yarn ts-compile && webpack-dev-server --open --hot --mode development"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.16.0",
+    "@babel/preset-react": "^7.16.0",
+    "@babel/preset-typescript": "^7.16.0",
+    "@types/react-dom": "^17.0.11",
+    "babel-loader": "^8.2.3",
+    "typescript": "^4.5.2",
+    "webpack": "^5.64.4",
+    "webpack-cli": "^4.9.1",
+    "webpack-dev-server": "^4.6.0"
+  },
+  "dependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  }
+}
