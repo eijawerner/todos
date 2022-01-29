@@ -4,20 +4,20 @@ const neo4j = require("neo4j-driver");
 require("dotenv").config();
 
 const typeDefs = gql`
-  type User {
-    name: String!
-    email: String!
-    todoLists: [TodoList] @relationship(type: "CREATED", direction: OUT)
+  type Todo {
+    text: String!
+    checked: Boolean @default(value: false)
   }
   
   type TodoList {
     name: String!
-    todos: [Todo] @relationship(type: "BELONGS", direction: IN)
-  }
+    todos: [Todo] @relationship(type: "BELONGS_TO", direction: IN)
+  } 
 
-  type Todo {
-    text: String!
-    checked: Boolean
+  type User {
+    name: String!
+    email: String!
+    todoLists: [TodoList] @relationship(type: "CREATED_BY", direction: OUT)
   }
 `;
 
