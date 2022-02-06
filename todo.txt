@@ -1,0 +1,8 @@
+
+style:
+- cleanup inline styles
+- custom style checkboxes
+- change background of todorows to something else than white
+
+functionality:
+- add debounce

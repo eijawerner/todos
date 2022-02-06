@@ -6,7 +6,7 @@
   "author": "Eija Werner <github@eija.se>",
   "license": "MIT",
   "scripts": {
-    "build": "webpack --mode production --progress --hide-modules",
+    "build": "webpack --mode production --progress",
     "ts-compile": "yarn tsc --noEmit",
     "start": "yarn ts-compile && webpack-dev-server --open --hot --mode development"
   },
@@ -21,6 +21,7 @@
     "@types/node": "^12.0.0",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.11",
+    "@types/styled-components": "^5.1.21",
     "babel-loader": "^8.2.3",
     "typescript": "^4.5.2",
     "webpack": "^5.64.4",
@@ -29,9 +30,10 @@
   },
   "dependencies": {
     "@apollo/client": "^3.5.5",
+    "graphql": "^16.0.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "graphql": "^16.0.1"
+    "styled-components": "^5.3.3"
   },
   "browserslist": {
     "production": [

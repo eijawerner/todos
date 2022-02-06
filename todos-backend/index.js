@@ -5,6 +5,7 @@ require("dotenv").config();
 
 const typeDefs = gql`
   type Todo {
+    id: ID! @id
     text: String!
     checked: Boolean @default(value: false)
   }
