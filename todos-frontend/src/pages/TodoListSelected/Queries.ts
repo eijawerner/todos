@@ -67,7 +67,8 @@ const CREATE_TODOLIST_WITH_NAME = gql`
     mutation($listName: String!) {
       createTodoLists(input: {
         name: $listName
-        todos: {        }
+        todos: {     }
+        user: {connect: { where: { node: { name: "eijrik"}}}}
       }
       ) {
         todoLists {

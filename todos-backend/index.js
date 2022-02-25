@@ -13,12 +13,13 @@ const typeDefs = gql`
   type TodoList {
     name: String!
     todos: [Todo] @relationship(type: "BELONGS_TO", direction: IN)
+    user: User! @relationship(type: "CREATED_BY", direction: OUT)
   } 
 
   type User {
     name: String!
     email: String!
-    todoLists: [TodoList] @relationship(type: "CREATED_BY", direction: OUT)
+    todoLists: [TodoList] @relationship(type: "CREATED_BY", direction: IN)
   }
 `;
 

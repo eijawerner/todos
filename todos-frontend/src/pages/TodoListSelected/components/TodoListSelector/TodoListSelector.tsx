@@ -1,4 +1,4 @@
-import React, { ChangeEvent } from 'react';
+import React, { ChangeEvent, useState } from 'react';
 import { style } from './TodoListSelector.style';
 import { StyledProps, TodoList } from '../../../../common/types/Models';
 import styled from 'styled-components';
@@ -6,10 +6,11 @@ import styled from 'styled-components';
 export const NONE_SELECTED = 'none'
 
 export type TodoListSelectorProps = StyledProps & {
+    selected: string;
     todoLists: TodoList[];
     onSelectTodoListChange: (todoListName: string) => void;
 }
-function TodoListSelectorBase({className, todoLists, onSelectTodoListChange}: TodoListSelectorProps) {
+function TodoListSelectorBase({selected, className, todoLists, onSelectTodoListChange}: TodoListSelectorProps) {
 
     const handleSelectChange = (e: ChangeEvent<HTMLSelectElement>) => {
         const selectedOption = e.target.value
@@ -20,6 +21,7 @@ function TodoListSelectorBase({className, todoLists, onSelectTodoListChange}: To
         <div>
             {/*<label htmlFor="todolist">{'Select todo list:'}</label>*/}
             <select className={className} name={"todolist"}
+                    value={selected}
                     onChange={handleSelectChange}
                     disabled={todoLists.length === 0}>
                 <option key={NONE_SELECTED} value={NONE_SELECTED}>{'Please select...'}</option>

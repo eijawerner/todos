@@ -69,8 +69,8 @@ function TodoRowBase({className, todo, onDeleted, onEdited}: TodoRowProps) {
                 <input type="text"
                        id={`task_text_${todo.text}`}
                        value={taskText}
-                       onChange={handleTextInputChange} style={{ border: 'none', background: 'transparent'}} />
-                <Button type='secondary' size={'small'} onClick={handleDeleteTask} text={'delete'} />
+                       onChange={handleTextInputChange} style={{ border: 'none', background: 'transparent', width: '50vw'}} />
+                <Button appearance='secondary' size={'small'} onClick={handleDeleteTask} text={'delete'} />
             </div>
         </li>
     );

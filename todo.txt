@@ -1,8 +1,14 @@
 
 style:
+- restyle inputs, remove blue border, other way to indicate focus?
 - cleanup inline styles
 - custom style checkboxes
-- change background of todorows to something else than white
+- change background of todorows to something else than white?
 
 functionality:
-- add debounce
+- prevent to save lists with same name (unique keyword in graphql?)
+- way to delete or edit name of list
+- list id, url with list id? redirect after list is created?
+- (add debounce)
+- (use webhooks instead of poll? https://graphql.guide/background/webhooks/)
+-

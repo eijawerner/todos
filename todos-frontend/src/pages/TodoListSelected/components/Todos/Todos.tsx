@@ -6,6 +6,7 @@ import { TodoRow } from './components/TodoRow/TodoRow';
 import { Button } from '../../../../common/components/Button/Button';
 import { useMutation, useQuery } from '@apollo/client';
 import { queries } from '../../Queries';
+import { useInterval } from '../../../../common/hooks/Time';
 
 export type TodosProps = StyledProps & {
     listName: string;
@@ -14,7 +15,7 @@ export type TodosProps = StyledProps & {
 const StyledTodoList = styled.ul`
   color: #84b7c3;
   list-style-type: none;
-  padding: 0;
+  padding: 0.5rem 0 1rem 0;
   margin: 0;
 `;
 
@@ -32,6 +33,14 @@ function TodosBase({listName}: TodosProps) {
         setTodos(todoList)
     }, [listName, loadTodoData.data])
 
+    const reloadTodosList = () => {
+        loadTodoData.refetch()
+            .then(r => console.log('reloaded todos'))
+            .catch(error => console.log(error))
+    }
+
+    // useInterval(reloadTodosList, 2000)
+
     const handleAddTask = (listName: string) => {
         addTodo({
             variables: { listName: listName, task: ''}
@@ -42,12 +51,6 @@ function TodosBase({listName}: TodosProps) {
                 reloadTodosList()
 
         })
-            .catch(error => console.log(error))
-    }
-
-    const reloadTodosList = () => {
-        loadTodoData.refetch()
-            .then(r => console.log('reloaded todos'))
             .catch(error => console.log(error))
     }
 
@@ -73,7 +76,7 @@ function TodosBase({listName}: TodosProps) {
             { todos && <StyledTodoList>
                 { todos.map((todo, idx) => (<TodoRow key={todo.id} todo={todo} onDeleted={handleDeletedTodo} onEdited={handleEditedTodo} />))}
             </StyledTodoList>}
-            <Button type='primary' onClick={() => handleAddTask(listName)} text={'New task'} />
+            <Button appearance='primary' onClick={() => handleAddTask(listName)} text={'New task'} />
         </>
     );
 
