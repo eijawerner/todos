@@ -11,13 +11,13 @@ const typeDefs = gql`
   }
   
   type TodoList {
-    name: String!
+    name: String! @unique
     todos: [Todo] @relationship(type: "BELONGS_TO", direction: IN)
     user: User! @relationship(type: "CREATED_BY", direction: OUT)
   } 
 
   type User {
-    name: String!
+    name: String! @unique
     email: String!
     todoLists: [TodoList] @relationship(type: "CREATED_BY", direction: IN)
   }
@@ -29,11 +29,14 @@ const driver = neo4j.driver(
 );
 
 const neoSchema = new Neo4jGraphQL({ typeDefs, driver });
+neoSchema.assertIndexesAndConstraints({ options: { create: true }})
+    .then(() => {
+        const server = new ApolloServer({
+            schema: neoSchema.schema,
+        });
 
-const server = new ApolloServer({
-    schema: neoSchema.schema,
-});
+        server.listen().then(({ url }) => {
+            console.log(`GraphQL server ready on ${url}`);
+        });
+    }).catch(error => console.log(error));
 
-server.listen().then(({ url }) => {
-    console.log(`GraphQL server ready on ${url}`);
-});

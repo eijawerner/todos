@@ -6,7 +6,7 @@ style:
 - change background of todorows to something else than white?
 
 functionality:
-- prevent to save lists with same name (unique keyword in graphql?)
+- better error handling when tries to save lists with same name
 - way to delete or edit name of list
 - list id, url with list id? redirect after list is created?
 - (add debounce)
