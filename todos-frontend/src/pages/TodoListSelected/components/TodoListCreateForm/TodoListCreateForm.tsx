@@ -16,6 +16,7 @@ const StyledOverlay = styled.div<StyledOverlayProps>`
   position: absolute;
   top: 0.5rem;
   width: 70vw;
+  z-index: 1;
 `;
 
 const StyledForm = styled.form`
