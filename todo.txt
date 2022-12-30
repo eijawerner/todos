@@ -13,3 +13,4 @@ functionality:
 - list id, url with list id? redirect after list is created?
 - (add debounce)
 - use subscriptions instead of poll (https://neo4j.com/docs/graphql-manual/current/subscriptions/)
+- add favicon
