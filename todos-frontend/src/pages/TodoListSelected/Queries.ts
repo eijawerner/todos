@@ -136,6 +136,18 @@ mutation($id: ID!, $text: String!, $checked: Boolean) {
     }
 `;
 
+const TODO_SUBSCRIPTION = gql`
+subscription {
+  todoListCreated {
+    createdTodoList {
+      name
+    }
+    event
+    timestamp
+  }
+}
+`;
+
 export const queries = {
     GET_TODO_LISTS,
     GET_TODOS_IN_TODOLIST,
@@ -145,5 +157,6 @@ export const queries = {
     CREATE_TODO_IN_TODOLIST,
     CREATE_TODO,
     DELETE_TODO,
-    UPDATE_TODO
+    UPDATE_TODO,
+    TODO_SUBSCRIPTION
 }

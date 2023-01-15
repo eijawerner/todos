@@ -46,7 +46,7 @@ async function main() {
   const httpServer = createServer(app);
   const wsServer = new WebSocketServer({
       server: httpServer,
-      path: "/graphql",
+      path: "/",
   });
 
   const schema = await neoSchema.getSchema();
@@ -55,8 +55,6 @@ async function main() {
   }, wsServer);
 
   const server = new ApolloServer({
-    cors: true,
-    csrfPrevention: false,
       schema,
       plugins: [
           ApolloServerPluginDrainHttpServer({
@@ -76,11 +74,11 @@ async function main() {
   await server.start();
 
   const corsOptions = {
-    origin: ["http://localhost:3000"]
+    origin: ["http://localhost:3000", "https://studio.apollographql.com"]
   };
   server.applyMiddleware({
       app,
-      cors: corsOptions,
+      // cors: corsOptions,
       path: "/",
   });
 
