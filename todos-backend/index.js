@@ -46,7 +46,7 @@ async function main() {
   const httpServer = createServer(app);
   const wsServer = new WebSocketServer({
       server: httpServer,
-      path: "/",
+      path: "/subscriptions",
   });
 
   const schema = await neoSchema.getSchema();
@@ -54,8 +54,12 @@ async function main() {
       schema
   }, wsServer);
 
+  const corsOptions = {
+    origin: ["http://localhost:3000", "https://studio.apollographql.com"]
+  };
   const server = new ApolloServer({
       schema,
+      csrfPrevention: true,
       plugins: [
           ApolloServerPluginDrainHttpServer({
               httpServer
@@ -73,18 +77,16 @@ async function main() {
   });
   await server.start();
 
-  const corsOptions = {
-    origin: ["http://localhost:3000", "https://studio.apollographql.com"]
-  };
+  
   server.applyMiddleware({
       app,
-      // cors: corsOptions,
-      path: "/",
+      cors: corsOptions,
+      path: "/subscriptions",
   });
 
   const PORT = 4000;
   httpServer.listen(PORT, () => {
-      console.log(`Server is now running on http://localhost:${PORT}`);
+      console.log(`Server is now running on http://localhost:${PORT}/subscriptions`);
   });
 }
 

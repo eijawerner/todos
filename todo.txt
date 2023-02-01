@@ -1,4 +1,6 @@
 
+OBS! something wrong when setting up useSubscription in todoRow. See console.error
+
 style:
 - restyle inputs, remove blue border, other way to indicate focus?
 - cleanup inline styles
@@ -6,11 +8,11 @@ style:
 - change background of todorows to something else than white?
 
 functionality:
+- use subscriptions instead of poll (https://neo4j.com/docs/graphql-manual/current/subscriptions/)
 - prevent autofill suggestions of new form!
 - better error handling when tries to save lists with same name
 - error handling in general
 - way to delete or edit name of list
 - list id, url with list id? redirect after list is created?
 - (add debounce)
-- use subscriptions instead of poll (https://neo4j.com/docs/graphql-manual/current/subscriptions/)
 - add favicon

@@ -1,9 +1,9 @@
 import { StyledProps, Todo } from '../../../../../../common/types/Models';
 import styled from 'styled-components';
 import { style } from './TodoRow.style';
-import React, { ChangeEvent, useState } from 'react';
+import React, { ChangeEvent, useEffect, useState } from 'react';
 import { Button } from '../../../../../../common/components/Button/Button';
-import { useApolloClient, useMutation } from '@apollo/client';
+import { useApolloClient, useMutation, useSubscription } from '@apollo/client';
 import { queries } from '../../../../Queries';
 
 export type TodoRowProps = StyledProps & {
@@ -15,8 +15,15 @@ export type TodoRowProps = StyledProps & {
 function TodoRowBase({className, todo, onDeleted, onEdited}: TodoRowProps) {
     const [rowChecked, setRowChecked] = useState(todo.checked);
     const [taskText, setTaskText] = useState(todo.text);
-    const [editTodo, editTodoData] = useMutation(queries.UPDATE_TODO)
+    const [editTodo, editTodoData] = useMutation(queries.UPDATE_TODO);
+    const { data, loading, error } = useSubscription(queries.TODO_SUBSCRIPTION);
     const client = useApolloClient()
+
+    useEffect(() => {
+        console.log("loading", loading);
+        console.log("data", data);
+        console.log("error", error);
+    }, [loading, data, error])
 
     const handleClickCheckbox = (e: ChangeEvent<HTMLInputElement>) => {
         const checked = !rowChecked
