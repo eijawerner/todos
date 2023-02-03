@@ -24,4 +24,9 @@ export const style = (props: ButtonProps) => `
     :active {
         background: ${COLOR_ORANGE_DARK};
     }
+
+    :focus-visible {
+        outline: 2px solid grey;
+    }
+    
 `;

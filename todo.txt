@@ -1,15 +1,19 @@
 
 style:
-- restyle inputs, remove blue border, other way to indicate focus?
 - cleanup inline styles
 - custom style checkboxes
-- change background of todorows to something else than white?
+- use some icon library
+
+DX:
+- add alias to shared stuff
+- use tailwind?
 
 functionality:
-- prevent autofill suggestions of new form!
+- way to manually reload list
+- way to delete or edit name of list
 - better error handling when tries to save lists with same name
 - error handling in general
-- way to delete or edit name of list
 - list id, url with list id? redirect after list is created?
 - (add debounce)
+- load latest stored list when loading page
 - use subscriptions instead of poll (https://neo4j.com/docs/graphql-manual/current/subscriptions/)

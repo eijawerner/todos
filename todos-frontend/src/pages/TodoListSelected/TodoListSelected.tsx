@@ -11,12 +11,21 @@ import { Todos } from "./components/Todos/Todos";
 import { Button } from "../../common/components/Button/Button";
 import { queries } from "./Queries";
 import { TodoListCreateForm } from "./components/TodoListCreateForm/TodoListCreateForm";
+import { COLOR_BLUE_SKY } from "../../common/contants/colors";
 
 type TodoListProps = StyledProps & {};
 
 const StyledTodoHeader = styled.h2`
-  color: #84b7c3;
+  color: ${COLOR_BLUE_SKY};
   margin: 0;
+`;
+
+const StyledSelectListWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  padding: 1.5rem;
+  gap: 0.5rem;
+  align-items: center;
 `;
 
 const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
@@ -61,15 +70,7 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
         onCloseOverlayClick={handleCloseOverlayClick}
       />
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          padding: "15px",
-          gap: "5px",
-          alignItems: "center",
-        }}
-      >
+      <StyledSelectListWrapper>
         <TodoListSelector
           selected={selectedList}
           todoLists={todoLists}
@@ -81,7 +82,7 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
           text={"New list"}
           size={"small"}
         />
-      </div>
+      </StyledSelectListWrapper>
 
       {selectedList !== NONE_SELECTED && (
         <>

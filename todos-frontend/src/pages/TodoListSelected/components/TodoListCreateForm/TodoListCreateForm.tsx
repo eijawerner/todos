@@ -43,7 +43,7 @@ const StyledCloseButton = styled.button`
   cursor: pointer;
   border: none;
   border-radius: 50%;
-  font-size: 14px;
+  font-size: 1.5rem;
 `;
 
 type TodoListCreateFormProps = {
@@ -71,7 +71,7 @@ export function TodoListCreateForm({
       <StyledCloseButtonContainer>
         <StyledCloseButton onClick={onCloseOverlayClick}>x</StyledCloseButton>
       </StyledCloseButtonContainer>
-      <StyledForm onSubmit={handleSubmit}>
+      <StyledForm onSubmit={handleSubmit} autoComplete="off">
         <label htmlFor="formName">List name:</label>
         <input
           id={"formName"}

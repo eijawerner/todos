@@ -6,3 +6,5 @@ export const COLOR_ORANGE = "rgb(246, 128, 62)";
 export const COLOR_ORANGE_LIGHT = "rgb(252,140,78)";
 export const COLOR_ORANGE_DARK = "rgb(208,111,57)";
 export const COLOR_BLUE_SKY = "#84b7c3";
+export const COLOR_BLACK = "#233236";
+export const COLOR_WHITE = "#ffffff";

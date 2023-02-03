@@ -11,13 +11,16 @@ import { Button } from "../../../../common/components/Button/Button";
 import { useMutation, useQuery } from "@apollo/client";
 import { queries } from "../../Queries";
 import { useInterval } from "../../../../common/hooks/Time";
+import { COLOR_BLUE_SKY } from "../../../../common/contants/colors";
 
 export type TodosProps = StyledProps & {
   listName: string;
 };
 
 const StyledTodoList = styled.ul`
-  color: #84b7c3;
+  width: 100%;
+  max-width: 50rem;
+  color: ${COLOR_BLUE_SKY};
   list-style-type: none;
   padding: 0.5rem 0 1rem 0;
   margin: 0;

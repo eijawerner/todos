@@ -5,6 +5,22 @@ import React, { ChangeEvent, useState } from "react";
 import { Button } from "../../../../../../common/components/Button/Button";
 import { useApolloClient, useMutation } from "@apollo/client";
 import { queries } from "../../../../Queries";
+import { StyledCheckboxInput } from "../../../../../../common/components/Checkbox";
+import { COLOR_BLACK } from "../../../../../../common/contants/colors";
+
+const StyledTextInput = styled.input`
+  flex-grow: 1;
+  border: none;
+  background-color: transparent;
+  color: ${COLOR_BLACK};
+  font-size: 1.5rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  &:focus {
+    outline: none;
+    background: white;
+  }
+`;
 
 export type TodoRowProps = StyledProps & {
   todo: Todo;
@@ -61,32 +77,20 @@ function TodoRowBase({ className, todo, onDeleted, onEdited }: TodoRowProps) {
 
   return (
     <li className={className}>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "flex-start",
-          gap: "0.5rem",
-          padding: "0.5rem 0",
-          margin: "0 8px",
-        }}
-      >
-        <input
+      <div>
+        <StyledCheckboxInput
           type="checkbox"
           id="task_done"
           name={`task${todo.text}`}
           checked={rowChecked}
           value={todo.text}
           onChange={handleClickCheckbox}
-          style={{ margin: 0, padding: 0 }}
         />
-        <input
+        <StyledTextInput
           type="text"
           id={`task_text_${todo.text}`}
           value={taskText}
           onChange={handleTextInputChange}
-          style={{ border: "none", background: "transparent", width: "50vw" }}
         />
         <Button
           appearance="secondary"
