@@ -1,4 +1,4 @@
-import { COLOR_GREY_LIGHT } from '../../../../../../common/contants/colors';
+import { COLOR_GREY_LIGHT } from "../../../../../../common/contants/colors";
 
 export const style = `
     background: ${COLOR_GREY_LIGHT};

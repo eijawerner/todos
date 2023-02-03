@@ -1,4 +1,3 @@
-
 export const style = `
     list-style-type: none; /* Remove bullets */
     padding: 0;

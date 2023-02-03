@@ -1,7 +1,6 @@
-import { COLOR_DARK_BLUE } from '../../common/contants/colors';
+import { COLOR_DARK_BLUE } from "../../common/contants/colors";
 
-
-export const style =`
+export const style = `
     display: flex;
     flex-direction: column;
     align-items: center;

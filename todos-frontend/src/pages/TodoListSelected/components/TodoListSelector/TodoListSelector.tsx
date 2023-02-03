@@ -1,36 +1,49 @@
-import React, { ChangeEvent, useState } from 'react';
-import { style } from './TodoListSelector.style';
-import { StyledProps, TodoList } from '../../../../common/types/Models';
-import styled from 'styled-components';
+import React, { ChangeEvent, useState } from "react";
+import { style } from "./TodoListSelector.style";
+import { StyledProps, TodoList } from "../../../../common/types/Models";
+import styled from "styled-components";
 
-export const NONE_SELECTED = 'none'
+export const NONE_SELECTED = "none";
 
 export type TodoListSelectorProps = StyledProps & {
-    selected: string;
-    todoLists: TodoList[];
-    onSelectTodoListChange: (todoListName: string) => void;
-}
-function TodoListSelectorBase({selected, className, todoLists, onSelectTodoListChange}: TodoListSelectorProps) {
+  selected: string;
+  todoLists: TodoList[];
+  onSelectTodoListChange: (todoListName: string) => void;
+};
+function TodoListSelectorBase({
+  selected,
+  className,
+  todoLists,
+  onSelectTodoListChange,
+}: TodoListSelectorProps) {
+  const handleSelectChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const selectedOption = e.target.value;
+    onSelectTodoListChange(selectedOption);
+  };
 
-    const handleSelectChange = (e: ChangeEvent<HTMLSelectElement>) => {
-        const selectedOption = e.target.value
-        onSelectTodoListChange(selectedOption);
-    };
-
-    return (
-        <div>
-            {/*<label htmlFor="todolist">{'Select todo list:'}</label>*/}
-            <select className={className} name={"todolist"}
-                    value={selected}
-                    onChange={handleSelectChange}
-                    disabled={todoLists.length === 0}>
-                <option key={NONE_SELECTED} value={NONE_SELECTED}>{'Please select...'}</option>
-                { todoLists.map((list: TodoList) => <option key={list.name} value={list.name}>{list.name}</option>) }
-            </select>
-        </div>
-    );
+  return (
+    <div>
+      {/*<label htmlFor="todolist">{'Select todo list:'}</label>*/}
+      <select
+        className={className}
+        name={"todolist"}
+        value={selected}
+        onChange={handleSelectChange}
+        disabled={todoLists.length === 0}
+      >
+        <option key={NONE_SELECTED} value={NONE_SELECTED}>
+          {"Please select..."}
+        </option>
+        {todoLists.map((list: TodoList) => (
+          <option key={list.name} value={list.name}>
+            {list.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 }
 
 export const TodoListSelector = styled(TodoListSelectorBase)`
   ${style}
-`
+`;

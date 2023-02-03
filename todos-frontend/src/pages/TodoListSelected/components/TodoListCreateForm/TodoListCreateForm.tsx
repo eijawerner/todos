@@ -1,13 +1,13 @@
-import React, { ChangeEvent, FormEvent, useState } from 'react';
-import { Button } from '../../../../common/components/Button/Button';
-import styled from 'styled-components';
+import React, { ChangeEvent, FormEvent, useState } from "react";
+import { Button } from "../../../../common/components/Button/Button";
+import styled from "styled-components";
 
 type StyledOverlayProps = {
-    isVisible: boolean
-}
+  isVisible: boolean;
+};
 const StyledOverlay = styled.div<StyledOverlayProps>`
-  opacity: ${ props => props.isVisible? 1 : 0};
-  pointer-events: ${ props => props.isVisible? 'auto' : 'none'};
+  opacity: ${(props) => (props.isVisible ? 1 : 0)};
+  pointer-events: ${(props) => (props.isVisible ? "auto" : "none")};
   background: white;
   padding: 1rem;
   display: flex;
@@ -27,7 +27,7 @@ const StyledForm = styled.form`
 
 const StyledButtonsContainer = styled.div`
   display: flex;
-  flex-direction: row; 
+  flex-direction: row;
   gap: 0.5rem;
   justify-content: end;
   padding-top: 1rem;
@@ -47,34 +47,42 @@ const StyledCloseButton = styled.button`
 `;
 
 type TodoListCreateFormProps = {
-    isVisible: boolean;
-    onCreateTodoList: (name: string) => void;
-    onCloseOverlayClick: () => void;
-}
-export function TodoListCreateForm({isVisible, onCreateTodoList, onCloseOverlayClick}: TodoListCreateFormProps) {
-    const [listName, setListName] = useState('')
-    const handleSubmit = (event: FormEvent) => {
-        event.preventDefault();
-        onCreateTodoList(listName)
-        setListName('')
-    }
-    const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const name = e.target.value;
-        setListName(name)
-    }
-    return (
-        <StyledOverlay isVisible={isVisible}>
-            <StyledCloseButtonContainer>
-                <StyledCloseButton onClick={onCloseOverlayClick}>x</StyledCloseButton>
-            </StyledCloseButtonContainer>
-            <StyledForm onSubmit={handleSubmit}>
-                <label htmlFor="formName">List name:</label>
-                <input id={"formName"} value={listName} onChange={handleInputChange} placeholder={'Fill in list name'} />
-                <StyledButtonsContainer>
-                    <Button text={'OK'} type='submit' appearance={'primary'} />
-                </StyledButtonsContainer>
-            </StyledForm>
-
-        </StyledOverlay>
-        )
+  isVisible: boolean;
+  onCreateTodoList: (name: string) => void;
+  onCloseOverlayClick: () => void;
+};
+export function TodoListCreateForm({
+  isVisible,
+  onCreateTodoList,
+  onCloseOverlayClick,
+}: TodoListCreateFormProps) {
+  const [listName, setListName] = useState("");
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    onCreateTodoList(listName);
+    setListName("");
+  };
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    setListName(name);
+  };
+  return (
+    <StyledOverlay isVisible={isVisible}>
+      <StyledCloseButtonContainer>
+        <StyledCloseButton onClick={onCloseOverlayClick}>x</StyledCloseButton>
+      </StyledCloseButtonContainer>
+      <StyledForm onSubmit={handleSubmit}>
+        <label htmlFor="formName">List name:</label>
+        <input
+          id={"formName"}
+          value={listName}
+          onChange={handleInputChange}
+          placeholder={"Fill in list name"}
+        />
+        <StyledButtonsContainer>
+          <Button text={"OK"} type="submit" appearance={"primary"} />
+        </StyledButtonsContainer>
+      </StyledForm>
+    </StyledOverlay>
+  );
 }

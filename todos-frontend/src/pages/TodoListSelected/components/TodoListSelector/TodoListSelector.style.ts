@@ -1,4 +1,3 @@
-
 export const style = `
     min-width: 10rem;
     > .label {
