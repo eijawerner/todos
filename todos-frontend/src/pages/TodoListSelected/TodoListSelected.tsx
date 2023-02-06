@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useMutation } from "@apollo/client";
+import { useQuery, useMutation, useApolloClient } from "@apollo/client";
 import { StyledProps, TodoListsData } from "../../common/types/Models";
 import styled from "styled-components";
 import { style } from "./TodoListSelected.style";
@@ -12,13 +12,9 @@ import { Button } from "../../common/components/Button/Button";
 import { queries } from "./Queries";
 import { TodoListCreateForm } from "./components/TodoListCreateForm/TodoListCreateForm";
 import { COLOR_BLUE_SKY } from "../../common/contants/colors";
+import { TodoListHeader } from "./components/TodoListHeader/TodoListHeader";
 
 type TodoListProps = StyledProps & {};
-
-const StyledTodoHeader = styled.h2`
-  color: ${COLOR_BLUE_SKY};
-  margin: 0;
-`;
 
 const StyledSelectListWrapper = styled.div`
   display: flex;
@@ -33,6 +29,7 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
   const [selectedList, setSelectedList] = useState<string>(NONE_SELECTED);
   const [newListFormIsVisible, setNewListFormIsVisible] = useState(false);
   const [addList, addListData] = useMutation(queries.CREATE_TODOLIST_WITH_NAME);
+  const client = useApolloClient();
 
   const todoLists = todoListsLoad.data ? todoListsLoad.data.todoLists : [];
 
@@ -62,6 +59,27 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
 
   const handleCloseOverlayClick = () => setNewListFormIsVisible(false);
 
+  const handleDeleteList = () => {
+    console.log(`delete list with name ${selectedList} and id`);
+    if (client) {
+      client
+        .mutate({
+          mutation: queries.DELETE_TODOLIST,
+          variables: { todoListName: selectedList },
+        })
+        .then(() => {
+          console.log("deleted list");
+          // const updatedList = todoLists.filter((todoList) => todoList.name !== selectedList);
+          setSelectedList(NONE_SELECTED);
+          todoListsLoad
+            .refetch()
+            .then((r) => console.log("reloaded todo lists"))
+            .catch((error) => console.log(error));
+        })
+        .catch(console.log);
+    }
+  };
+
   return (
     <div className={className}>
       <TodoListCreateForm
@@ -86,7 +104,10 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
 
       {selectedList !== NONE_SELECTED && (
         <>
-          <StyledTodoHeader>{`${selectedList}`}</StyledTodoHeader>
+          <TodoListHeader
+            selectedListName={selectedList}
+            onDeleteList={handleDeleteList}
+          />
           <Todos listName={selectedList} />
         </>
       )}

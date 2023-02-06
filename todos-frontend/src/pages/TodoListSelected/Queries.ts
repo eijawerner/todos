@@ -75,6 +75,15 @@ const CREATE_TODOLIST_WITH_NAME = gql`
   }
 `;
 
+const DELETE_TODOLIST = gql`
+  mutation ($todoListName: String!) {
+    deleteTodoLists(where: { name: $todoListName }) {
+      nodesDeleted
+      relationshipsDeleted
+    }
+  }
+`;
+
 const CREATE_TODO_IN_TODOLIST = gql`
   mutation {
     createTodos(input: { text: "new stuff", checked: false }) {
@@ -134,6 +143,7 @@ export const queries = {
   GET_TODOS_IN_TODOLIST_WITH_NAME,
   CREATE_TODOLIST_WITH_TODOS,
   CREATE_TODOLIST_WITH_NAME,
+  DELETE_TODOLIST,
   CREATE_TODO_IN_TODOLIST,
   CREATE_TODO,
   DELETE_TODO,
