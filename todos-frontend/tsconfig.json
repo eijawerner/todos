@@ -3,7 +3,7 @@
     /* Visit https://aka.ms/tsconfig.json to read more about this file */
     "target": "es2016",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
      "jsx": "react",                                /* Specify what JSX code is generated. */
-    "module": "commonjs",                                /* Specify what module code is generated. */
+    "module": "ES2020",                                /* Specify what module code is generated. */
     "rootDir": "./src",                                  /* Specify the root folder within your source files. */
     "outDir":  "./out",                                   /* Specify an output folder for all emitted files. */
     "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables `allowSyntheticDefaultImports` for type compatibility. */
@@ -14,7 +14,9 @@
     "noImplicitAny": true,
     "strictNullChecks": true,
     "noEmit": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "types": ["node", "vite/client"],
+    "moduleResolution": "node",
   },
   "include": [
     "src"

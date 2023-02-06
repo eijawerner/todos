@@ -11,7 +11,7 @@ DX:
 - add yarn dev command with nodemon, to autoload on save
 
 functionality:
-- are you sure overlay when deleting list
+- "are you sure?" overlay when deleting list
 - way to manually reload list
 - way to delete or edit name of list
 - better error handling when tries to save lists with same name

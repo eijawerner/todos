@@ -8,7 +8,8 @@
   "scripts": {
     "build": "vite build",
     "ts-compile": "yarn tsc --noEmit",
-    "start": "yarn ts-compile && vite"
+    "start": "yarn ts-compile && vite",
+    "serve:prod": "serve --single dist --listen 3060"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.11.4",
@@ -28,7 +29,8 @@
     "graphql": "^16.0.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "styled-components": "^5.3.3"
+    "styled-components": "^5.3.3",
+    "serve": "14.2.0"
   },
   "browserslist": {
     "production": [

@@ -28,14 +28,17 @@ const driver = neo4j.driver(
     neo4j.auth.basic(process.env.NEO4J_USER, process.env.NEO4J_PASSWORD)
 );
 
+// test
+const port = process.env.PORT || 4000;
+
 const neoSchema = new Neo4jGraphQL({ typeDefs, driver });
 neoSchema.getSchema()
     .then((schema) => {
         const server = new ApolloServer({
-            schema: schema,
+            schema: schema
         });
 
-        server.listen().then(({ url }) => {
+        server.listen({ port: port }).then(({ url }) => {
             console.log(`GraphQL server ready on ${url}`);
         });
     }).catch(error => console.log(error));
