@@ -8,25 +8,23 @@ import {
 import { ButtonProps } from "./Button";
 
 export const style = (props: ButtonProps) => `
-    color: ${COLOR_DARK_BLUE};
-    background: ${
-      props.appearance === "primary" ? COLOR_ORANGE : COLOR_BLUE_SKY
-    };
-    padding: ${props.size === "small" ? "4px 4px" : "8px 16px"};
-    border-radius: ${props.size === "small" ? "4px" : "8px"};
-    border: hsl(0deg, 0%, 0%);
-    
-    :hover {
-        background: ${COLOR_ORANGE_LIGHT};
-        cursor: pointer;
-    }
-    
-    :active {
-        background: ${COLOR_ORANGE_DARK};
-    }
+  font-size: 1.6rem;
+  color: ${COLOR_DARK_BLUE};
+  background: ${props.appearance === "primary" ? COLOR_ORANGE : COLOR_BLUE_SKY};
+  padding: ${props.size === "small" ? "4px 4px" : "8px 16px"};
+  border-radius: ${props.size === "small" ? "4px" : "8px"};
+  border: hsl(0deg, 0%, 0%);
+  
+  :hover {
+      background: ${COLOR_ORANGE_LIGHT};
+      cursor: pointer;
+  }
+  
+  :active {
+      background: ${COLOR_ORANGE_DARK};
+  }
 
-    :focus-visible {
-        outline: 2px solid grey;
-    }
-    
+  :focus-visible {
+      outline: 2px solid grey;
+  } 
 `;

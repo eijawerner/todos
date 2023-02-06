@@ -38,7 +38,6 @@ const StyledCloseButton = styled.button`
   cursor: pointer;
   border: none;
   border-radius: 50%;
-  font-size: 1.5rem;
   background: none;
 `;
 

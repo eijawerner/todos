@@ -13,7 +13,7 @@ const StyledTextInput = styled.input`
   border: none;
   background-color: transparent;
   color: ${COLOR_BLACK};
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   padding: 0.5rem;
   border-radius: 4px;
   &:focus {
