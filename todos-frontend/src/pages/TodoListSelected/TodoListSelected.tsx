@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery, useMutation, useApolloClient } from "@apollo/client";
 import { StyledProps, TodoListsData } from "../../common/types/Models";
 import styled from "styled-components";
@@ -32,6 +32,12 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
   const client = useApolloClient();
 
   const todoLists = todoListsLoad.data ? todoListsLoad.data.todoLists : [];
+
+  useEffect(() => {
+    if (todoLists.length > 0) {
+      setSelectedList(todoLists[0].name);
+    }
+  }, [todoLists]);
 
   const handleSelectTodoList = (name: string) => {
     setSelectedList(name);
