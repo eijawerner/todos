@@ -28,7 +28,6 @@ const driver = neo4j.driver(
     neo4j.auth.basic(process.env.NEO4J_USER, process.env.NEO4J_PASSWORD)
 );
 
-// test
 const port = process.env.PORT || 4000;
 
 const neoSchema = new Neo4jGraphQL({ typeDefs, driver });

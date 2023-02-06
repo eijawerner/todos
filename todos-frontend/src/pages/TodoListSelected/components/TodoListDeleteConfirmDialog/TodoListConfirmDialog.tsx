@@ -10,20 +10,14 @@ const StyledOverlay = styled.div<StyledOverlayProps>`
   opacity: ${(props) => (props.isVisible ? 1 : 0)};
   pointer-events: ${(props) => (props.isVisible ? "auto" : "none")};
   background: white;
-  padding: 1rem;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   position: absolute;
   top: 0.5rem;
-  width: 70vw;
+  width: 50vw;
   z-index: 1;
-`;
-
-const StyledForm = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 `;
 
 const StyledButtonsContainer = styled.div`
@@ -53,45 +47,36 @@ const StyledXMarkIcon = styled(XMarkIcon)`
   width: 20px;
 `;
 
-type TodoListCreateFormProps = {
+const StyledConfirmText = styled.h4`
+  font-size: 1.75rem;
+  padding: 0;
+  margin: 0;
+`;
+
+type TodoListDeleteConfirmDialogProps = {
+  listName: string;
   isVisible: boolean;
-  onCreateTodoList: (name: string) => void;
-  onCloseOverlayClick: () => void;
+  deleteList: () => void;
+  cancel: () => void;
 };
-export function TodoListCreateForm({
+export function TodoListDeleteConfirmDialog({
+  listName,
   isVisible,
-  onCreateTodoList,
-  onCloseOverlayClick,
-}: TodoListCreateFormProps) {
-  const [listName, setListName] = useState("");
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault();
-    onCreateTodoList(listName);
-    setListName("");
-  };
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const name = e.target.value;
-    setListName(name);
-  };
+  deleteList,
+  cancel,
+}: TodoListDeleteConfirmDialogProps) {
   return (
     <StyledOverlay isVisible={isVisible}>
       <StyledCloseButtonContainer>
-        <StyledCloseButton onClick={onCloseOverlayClick}>
+        <StyledCloseButton onClick={cancel}>
           <StyledXMarkIcon />
         </StyledCloseButton>
       </StyledCloseButtonContainer>
-      <StyledForm onSubmit={handleSubmit} autoComplete="off">
-        <label htmlFor="formName">List name:</label>
-        <input
-          id={"formName"}
-          value={listName}
-          onChange={handleInputChange}
-          placeholder={"Fill in list name"}
-        />
-        <StyledButtonsContainer>
-          <Button text={"OK"} type="submit" appearance={"primary"} />
-        </StyledButtonsContainer>
-      </StyledForm>
+      <StyledConfirmText>{`Are you sure you want to delete list ${listName}?`}</StyledConfirmText>
+      <StyledButtonsContainer>
+        <Button text={"cancel"} appearance={"secondary"} onClick={cancel} />
+        <Button text={"OK"} appearance={"primary"} onClick={deleteList} />
+      </StyledButtonsContainer>
     </StyledOverlay>
   );
 }

@@ -60,7 +60,6 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
   const handleCloseOverlayClick = () => setNewListFormIsVisible(false);
 
   const handleDeleteList = () => {
-    console.log(`delete list with name ${selectedList} and id`);
     if (client) {
       client
         .mutate({
@@ -69,7 +68,6 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
         })
         .then(() => {
           console.log("deleted list");
-          // const updatedList = todoLists.filter((todoList) => todoList.name !== selectedList);
           setSelectedList(NONE_SELECTED);
           todoListsLoad
             .refetch()

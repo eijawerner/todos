@@ -1,8 +1,9 @@
 
 style:
-- cleanup inline styles
+- use delete icon buttons (create general icon button component)
+- improve styling of create new list overlay
 - custom style checkboxes
-- use some icon library
+
 
 DX:
 - add alias to shared stuff
@@ -13,7 +14,7 @@ DX:
 functionality:
 - "are you sure?" overlay when deleting list
 - way to manually reload list
-- way to delete or edit name of list
+- way to edit name of list
 - better error handling when tries to save lists with same name
 - error handling in general
 - list id, url with list id? redirect after list is created?
