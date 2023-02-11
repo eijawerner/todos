@@ -26,9 +26,11 @@ export type TodoRowProps = StyledProps & {
   todo: Todo;
   onDeleted: (id: string) => void;
   onEdited: () => void;
+  addNewItem: () => void;
+  inputRef?: React.Ref<HTMLInputElement>
 };
 
-function TodoRowBase({ className, todo, onDeleted, onEdited }: TodoRowProps) {
+function TodoRowBase({ className, todo, onDeleted, onEdited, addNewItem, inputRef }: TodoRowProps) {
   const [rowChecked, setRowChecked] = useState(todo.checked);
   const [taskText, setTaskText] = useState(todo.text);
   const [editTodo, editTodoData] = useMutation(queries.UPDATE_TODO);
@@ -75,6 +77,12 @@ function TodoRowBase({ className, todo, onDeleted, onEdited }: TodoRowProps) {
     }
   };
 
+  const handleKeywordKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) =>{
+    if( e.key == 'Enter' ){
+      addNewItem()
+    }
+  };
+
   return (
     <li className={className}>
       <div>
@@ -91,6 +99,8 @@ function TodoRowBase({ className, todo, onDeleted, onEdited }: TodoRowProps) {
           id={`task_text_${todo.text}`}
           value={taskText}
           onChange={handleTextInputChange}
+          onKeyUp={handleKeywordKeyPress}
+          ref={inputRef} 
         />
         <Button
           appearance="secondary"

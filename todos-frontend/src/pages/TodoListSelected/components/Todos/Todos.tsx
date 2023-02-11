@@ -4,7 +4,7 @@ import {
   Todo,
   TodoListsData,
 } from "../../../../common/types/Models";
-import React, { useEffect, useState } from "react";
+import React, { Ref, useEffect, useState } from "react";
 import { style } from "./Todos.style";
 import { TodoRow } from "./components/TodoRow/TodoRow";
 import { Button } from "../../../../common/components/Button/Button";
@@ -35,6 +35,8 @@ function TodosBase({ listName }: TodosProps) {
   const [todos, setTodos] = useState<Todo[] | null>(null);
   const [loadingData, setLoadingData] = useState<boolean>(false);
 
+  const refToLast = React.createRef<HTMLInputElement>();
+
   useEffect(() => {
     const todoList: Todo[] =
       loadTodoData.data && loadTodoData.data.todoLists.length > 0
@@ -42,6 +44,12 @@ function TodosBase({ listName }: TodosProps) {
         : [];
     setTodos(todoList);
   }, [listName, loadTodoData.data]);
+
+  useEffect(() => {
+    if (refToLast.current) {
+      refToLast.current.focus();
+    }
+  }, [todos?.length]);
 
   const reloadTodosList = () => {
     loadTodoData
@@ -86,12 +94,14 @@ function TodosBase({ listName }: TodosProps) {
     <>
       {todos && (
         <StyledTodoList>
-          {todos.map((todo, idx) => (
+          {[...todos].reverse().map((todo, idx) => (
             <TodoRow
               key={todo.id}
               todo={todo}
               onDeleted={handleDeletedTodo}
               onEdited={handleEditedTodo}
+              addNewItem={() => handleAddTask(listName)}
+              inputRef={idx === todos.length - 1 ? refToLast: undefined}
             />
           ))}
         </StyledTodoList>
