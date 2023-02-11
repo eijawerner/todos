@@ -24,6 +24,7 @@ const StyledForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  font-size: 1.6rem;
 `;
 
 const StyledButtonsContainer = styled.div`
@@ -44,7 +45,7 @@ const StyledCloseButton = styled.button`
   cursor: pointer;
   border: none;
   border-radius: 50%;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   background: none;
 `;
 
@@ -87,6 +88,7 @@ export function TodoListCreateForm({
           value={listName}
           onChange={handleInputChange}
           placeholder={"Fill in list name"}
+          style={{fontSize: '1.6rem'}}
         />
         <StyledButtonsContainer>
           <Button text={"OK"} type="submit" appearance={"primary"} />

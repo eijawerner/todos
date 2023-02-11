@@ -11,7 +11,6 @@ import { Todos } from "./components/Todos/Todos";
 import { Button } from "../../common/components/Button/Button";
 import { queries } from "./Queries";
 import { TodoListCreateForm } from "./components/TodoListCreateForm/TodoListCreateForm";
-import { COLOR_BLUE_SKY } from "../../common/contants/colors";
 import { TodoListHeader } from "./components/TodoListHeader/TodoListHeader";
 
 type TodoListProps = StyledProps & {};
