@@ -52,15 +52,7 @@ function TodoRowBase({ className, todo, onDeleted, onEdited, addNewItem, inputRe
   const handleTextInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newText = e.target.value;
     setTaskText(newText);
-    editTodo({
-      variables: { id: todo.id, text: newText, checked: todo.checked },
-    })
-      .then(() => {
-        onEdited();
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    
   };
 
   const handleDeleteTask = () => {
@@ -77,14 +69,26 @@ function TodoRowBase({ className, todo, onDeleted, onEdited, addNewItem, inputRe
     }
   };
 
-  const handleKeywordKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) =>{
+  const handleSaveTask = () => {
+    editTodo({
+        variables: { id: todo.id, text: taskText, checked: todo.checked },
+      })
+        .then(() => {
+          onEdited();
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+  }
+
+  const handleKeywordKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if( e.key == 'Enter' ){
       addNewItem()
     }
   };
 
   return (
-    <li className={className}>
+    <li className={className} onBlur={handleSaveTask}>
       <div>
         <StyledCheckboxInput
           type="checkbox"
@@ -100,7 +104,7 @@ function TodoRowBase({ className, todo, onDeleted, onEdited, addNewItem, inputRe
           value={taskText}
           onChange={handleTextInputChange}
           onKeyUp={handleKeywordKeyPress}
-          ref={inputRef} 
+          ref={inputRef}
         />
         <Button
           appearance="secondary"
