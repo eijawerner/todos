@@ -32,7 +32,7 @@ function TodosBase({ listName }: TodosProps) {
     { variables: { listName: listName } }
   );
   const [addTodo, addTodoData] = useMutation(queries.CREATE_TODO);
-  const [todos, setTodos] = useState<Todo[] | null>(null);
+  const [todos, setTodos] = useState<Todo[]>([]);
   const [loadingData, setLoadingData] = useState<boolean>(false);
 
   const refToLast = React.createRef<HTMLInputElement>();
@@ -42,7 +42,8 @@ function TodosBase({ listName }: TodosProps) {
       loadTodoData.data && loadTodoData.data.todoLists.length > 0
         ? loadTodoData.data?.todoLists[0].todos
         : [];
-    setTodos(todoList);
+
+    setTodoListToDisplay(todoList);
   }, [listName, loadTodoData.data]);
 
   useEffect(() => {
@@ -50,6 +51,11 @@ function TodosBase({ listName }: TodosProps) {
       refToLast.current.focus();
     }
   }, [todos?.length]);
+
+  const setTodoListToDisplay = (todoListData: Todo[]) => {
+    const todosOrdered = [...todoListData.filter( t => !t.checked), ...todoListData.filter(t => t.checked)]
+    setTodos(todosOrdered);
+  }
 
   const reloadTodosList = () => {
     loadTodoData
@@ -66,7 +72,7 @@ function TodosBase({ listName }: TodosProps) {
     })
       .then((result) => {
         const todoList = result.data.updateTodoLists.todoLists[0].todos;
-        setTodos(todoList);
+        setTodoListToDisplay(todoList);
         reloadTodosList();
       })
       .catch((error) => console.log(error));
@@ -90,10 +96,11 @@ function TodosBase({ listName }: TodosProps) {
   if (loadTodoData.error)
     return <p>{`Error: ${loadTodoData.error.message}`}</p>;
 
+    
+
   return (
     <>
-      {todos && (
-        <StyledTodoList>
+      {<StyledTodoList>
           {[...todos].reverse().map((todo, idx) => (
             <TodoRow
               key={todo.id}
@@ -105,7 +112,7 @@ function TodosBase({ listName }: TodosProps) {
             />
           ))}
         </StyledTodoList>
-      )}
+        }
       <Button
         appearance="primary"
         onClick={() => handleAddTask(listName)}
