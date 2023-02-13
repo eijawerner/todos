@@ -8,7 +8,7 @@ import { queries } from "../../../../Queries";
 import { StyledCheckboxInput } from "../../../../../../common/components/Checkbox";
 import { COLOR_BLACK } from "../../../../../../common/contants/colors";
 
-const StyledTextInput = styled.input`
+const StyledTextInput = styled.input<{checked: boolean}>`
   flex-grow: 1;
   border: none;
   background-color: transparent;
@@ -20,6 +20,7 @@ const StyledTextInput = styled.input`
     outline: none;
     background: white;
   }
+  text-decoration: ${props => props.checked ? 'line-through;': undefined}
 `;
 
 export type TodoRowProps = StyledProps & {
@@ -105,6 +106,7 @@ function TodoRowBase({ className, todo, onDeleted, onEdited, addNewItem, inputRe
           onChange={handleTextInputChange}
           onKeyUp={handleKeywordKeyPress}
           ref={inputRef}
+          checked={rowChecked}
         />
         <Button
           appearance="secondary"
