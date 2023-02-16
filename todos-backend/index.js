@@ -13,6 +13,7 @@ const typeDefs = gql`
   type TodoList {
     name: String! @unique
     todos: [Todo!]! @relationship(type: "BELONGS_TO", direction: IN)
+    todosOrder: [ID!]!
     user: User! @relationship(type: "CREATED_BY", direction: OUT)
   } 
 

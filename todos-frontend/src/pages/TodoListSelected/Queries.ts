@@ -8,19 +8,6 @@ const GET_TODO_LISTS = gql`
   }
 `;
 
-const GET_TODOS_IN_TODOLIST = gql`
-  query {
-    todoLists(where: { name: "Att handla" }) {
-      name
-      todos {
-        text
-        checked
-        id
-      }
-    }
-  }
-`;
-
 const GET_TODOS_IN_TODOLIST_WITH_NAME = gql`
   query ($listName: String!) {
     todoLists(where: { name: $listName }) {
@@ -30,31 +17,7 @@ const GET_TODOS_IN_TODOLIST_WITH_NAME = gql`
         checked
         id
       }
-    }
-  }
-`;
-
-const CREATE_TODOLIST_WITH_TODOS = gql`
-  mutation {
-    createTodoLists(
-      input: {
-        name: "en till lista"
-        todos: {
-          create: [
-            { node: { text: "do stuff", checked: false } }
-            { node: { text: "do this", checked: false } }
-          ]
-        }
-      }
-    ) {
-      todoLists {
-        name
-        todos {
-          text
-          checked
-          id
-        }
-      }
+      todosOrder
     }
   }
 `;
@@ -75,23 +38,24 @@ const CREATE_TODOLIST_WITH_NAME = gql`
   }
 `;
 
+const UPDATE_TODOLIST_ORDER = gql`
+  mutation ($listName: String!, $todosOrder: [ID!]!) {
+    updateTodoLists(
+        where: { name: $listName }
+        update: { todosOrder: $todosOrder }
+    ) {
+      todoLists {
+        name
+      }
+    }
+  }
+`;
+
 const DELETE_TODOLIST = gql`
   mutation ($todoListName: String!) {
     deleteTodoLists(where: { name: $todoListName }) {
       nodesDeleted
       relationshipsDeleted
-    }
-  }
-`;
-
-const CREATE_TODO_IN_TODOLIST = gql`
-  mutation {
-    createTodos(input: { text: "new stuff", checked: false }) {
-      todos {
-        checked
-        text
-        id
-      }
     }
   }
 `;
@@ -109,6 +73,7 @@ const CREATE_TODO = gql`
           checked
           id
         }
+        todosOrder
       }
     }
   }
@@ -139,13 +104,11 @@ const UPDATE_TODO = gql`
 
 export const queries = {
   GET_TODO_LISTS,
-  GET_TODOS_IN_TODOLIST,
   GET_TODOS_IN_TODOLIST_WITH_NAME,
-  CREATE_TODOLIST_WITH_TODOS,
   CREATE_TODOLIST_WITH_NAME,
   DELETE_TODOLIST,
-  CREATE_TODO_IN_TODOLIST,
   CREATE_TODO,
   DELETE_TODO,
   UPDATE_TODO,
+  UPDATE_TODOLIST_ORDER
 };

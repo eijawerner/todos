@@ -16,6 +16,7 @@ export interface Todo {
 export interface TodoList {
   name: string;
   todos: [Todo];
+  todosOrder: [string];
 }
 
 export interface TodoListsData {

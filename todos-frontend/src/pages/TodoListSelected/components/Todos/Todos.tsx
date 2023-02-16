@@ -34,6 +34,7 @@ function TodosBase({ listName }: TodosProps) {
   const [addTodo, addTodoData] = useMutation(queries.CREATE_TODO);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loadingData, setLoadingData] = useState<boolean>(false);
+  const [updateTodoListOrder, updateTodoListOrderData] = useMutation(queries.UPDATE_TODOLIST_ORDER)
 
   const refToLast = React.createRef<HTMLInputElement>();
 
@@ -64,6 +65,17 @@ function TodosBase({ listName }: TodosProps) {
       .catch((error) => console.log(error));
   };
 
+  const updateTodosOrder = (newOrder: string[]) => {
+    console.log('listname', listName)
+    updateTodoListOrder({ variables: { listName: listName, todosOrder: newOrder } })
+    .then(() => {
+      console.log('updated order');
+    })
+    .catch((error) => {
+      console.log('failed to update order', error);
+    });
+  }
+
   useInterval(reloadTodosList, 60 * 1000);
 
   const handleAddTask = (listName: string) => {
@@ -72,6 +84,8 @@ function TodosBase({ listName }: TodosProps) {
     })
       .then((result) => {
         const todoList = result.data.updateTodoLists.todoLists[0].todos;
+        const newOrder = todoList.map((todo: Todo) => todo.id)
+        updateTodosOrder(newOrder);
         setTodoListToDisplay(todoList);
         reloadTodosList();
       })
