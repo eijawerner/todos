@@ -25,22 +25,21 @@ const StyledTextInput = styled.input<{checked: boolean}>`
 
 export type TodoRowProps = StyledProps & {
   todo: Todo;
-  onDeleted: (id: string) => void;
+  deleteTodo: (id: string) => void;
   onEdited: () => void;
   addNewItem: () => void;
   inputRef?: React.Ref<HTMLInputElement>
 };
 
-function TodoRowBase({ className, todo, onDeleted, onEdited, addNewItem, inputRef }: TodoRowProps) {
+function TodoRowBase({ className, todo, deleteTodo, onEdited, addNewItem, inputRef }: TodoRowProps) {
   const [rowChecked, setRowChecked] = useState(todo.checked);
   const [taskText, setTaskText] = useState(todo.text);
   const [editTodo, editTodoData] = useMutation(queries.UPDATE_TODO);
-  const client = useApolloClient();
 
   const handleClickCheckbox = (e: ChangeEvent<HTMLInputElement>) => {
     const checked = !rowChecked;
     setRowChecked(checked);
-    editTodo({ variables: { id: todo.id, text: todo.text, checked: checked } })
+    editTodo({ variables: { todoId: todo.todoId, text: todo.text, checked: checked } })
       .then(() => {
         onEdited();
       })
@@ -56,23 +55,9 @@ function TodoRowBase({ className, todo, onDeleted, onEdited, addNewItem, inputRe
     
   };
 
-  const handleDeleteTask = () => {
-    if (client) {
-      client
-        .mutate({
-          mutation: queries.DELETE_TODO,
-          variables: { todoId: todo.id },
-        })
-        .then((result) => {
-          onDeleted(todo.id);
-        })
-        .catch((error) => console.log(error));
-    }
-  };
-
   const handleSaveTask = () => {
     editTodo({
-        variables: { id: todo.id, text: taskText, checked: todo.checked },
+        variables: { todoId: todo.todoId, text: taskText, checked: todo.checked },
       })
         .then(() => {
           onEdited();
@@ -111,7 +96,7 @@ function TodoRowBase({ className, todo, onDeleted, onEdited, addNewItem, inputRe
         <Button
           appearance="secondary"
           size={"small"}
-          onClick={handleDeleteTask}
+          onClick={() => deleteTodo(todo.todoId)}
           text={"delete"}
         />
       </div>
