@@ -15,7 +15,7 @@ const GET_TODOS_IN_TODOLIST_WITH_NAME = gql`
       todos {
         text
         checked
-        id
+        todoId
       }
       todosOrder
     }
@@ -28,6 +28,7 @@ const CREATE_TODOLIST_WITH_NAME = gql`
       input: {
         name: $listName
         todos: {}
+        todosOrder: []
         user: { connect: { where: { node: { name: "eijrik" } } } }
       }
     ) {
@@ -39,7 +40,7 @@ const CREATE_TODOLIST_WITH_NAME = gql`
 `;
 
 const UPDATE_TODOLIST_ORDER = gql`
-  mutation ($listName: String!, $todosOrder: [ID!]!) {
+  mutation ($listName: String!, $todosOrder: [String!]!) {
     updateTodoLists(
         where: { name: $listName }
         update: { todosOrder: $todosOrder }
@@ -61,17 +62,17 @@ const DELETE_TODOLIST = gql`
 `;
 
 const CREATE_TODO = gql`
-  mutation ($listName: String!, $task: String!) {
+  mutation ($listName: String!, $task: String!, $todoId: String!, $todosOrder: [String!]!) {
     updateTodoLists(
       where: { name: $listName }
-      update: { todos: { create: [{ node: { text: $task, checked: false } }] } }
+      update: { todosOrder: $todosOrder, todos: { create: [{ node: { text: $task, checked: false, todoId: $todoId } }] } }
     ) {
       todoLists {
         name
         todos {
           text
           checked
-          id
+          todoId
         }
         todosOrder
       }
@@ -80,8 +81,8 @@ const CREATE_TODO = gql`
 `;
 
 const DELETE_TODO = gql`
-  mutation ($todoId: ID!) {
-    deleteTodos(where: { id: $todoId }) {
+  mutation ($todoId: String!) {
+    deleteTodos(where: { todoId: $todoId }) {
       nodesDeleted
       relationshipsDeleted
     }
@@ -89,9 +90,9 @@ const DELETE_TODO = gql`
 `;
 
 const UPDATE_TODO = gql`
-  mutation ($id: ID!, $text: String!, $checked: Boolean) {
+  mutation ($todoId: String!, $text: String!, $checked: Boolean) {
     updateTodos(
-      where: { id: $id }
+      where: { todoId: $todoId }
       update: { text: $text, checked: $checked }
     ) {
       info {

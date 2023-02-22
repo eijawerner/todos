@@ -7,7 +7,7 @@ export type StyledProps = {
 export interface Todo {
   text: string; // TODO: rename to task
   checked: boolean;
-  id: string;
+  todoId: string;
   // <id>: ... HOWTO access id?
   // next: Todo
   // prev: Todo
