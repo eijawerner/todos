@@ -80,20 +80,25 @@ export function TodoListCreateForm({
         <StyledCloseButton onClick={onCloseOverlayClick}>
           <StyledXMarkIcon />
         </StyledCloseButton>
-      </StyledCloseButtonContainer>
-      <StyledForm onSubmit={handleSubmit} autoComplete="off">
-        <label htmlFor="formName">List name:</label>
-        <input
-          id={"formName"}
-          value={listName}
-          onChange={handleInputChange}
-          placeholder={"Fill in list name"}
-          style={{fontSize: '1.6rem'}}
-        />
-        <StyledButtonsContainer>
-          <Button text={"OK"} type="submit" appearance={"primary"} />
-        </StyledButtonsContainer>
-      </StyledForm>
+      </StyledCloseButtonContainer> {
+        isVisible && (
+          <StyledForm onSubmit={handleSubmit} autoComplete="off">
+            <label htmlFor="formName">List name:</label>
+            <input
+              id={"formName"}
+              value={listName}
+              onChange={handleInputChange}
+              placeholder={"My todo list"}
+              style={{fontSize: '1.6rem'}}
+              autoFocus={true}
+            />
+            <StyledButtonsContainer>
+              <Button text={"Add list"} type="submit" appearance={"primary"} />
+            </StyledButtonsContainer>
+          </StyledForm>
+        )
+      }
+      
     </StyledOverlay>
   );
 }

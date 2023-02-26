@@ -13,7 +13,6 @@ DX:
 
 functionality:
 - reorder to first in list if checked changes to TRUE
-- autofocus Name in new list modal
 - make sure also todos in list are deleted when list is deleted
 - "are you sure?" overlay when deleting list
 - way to manually reload list
