@@ -6,6 +6,7 @@ style:
 
 
 DX:
+- Add e2e tests!
 - add alias to shared stuff
 - use tailwind?
 - add reset css file

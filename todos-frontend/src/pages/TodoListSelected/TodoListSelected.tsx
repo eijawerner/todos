@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useQuery, useMutation, useApolloClient } from "@apollo/client";
-import { StyledProps, TodoListsData } from "../../common/types/Models";
+import { StyledProps, TodoList, TodoListsData } from "../../common/types/Models";
 import styled from "styled-components";
 import { style } from "./TodoListSelected.style";
 import {
@@ -11,7 +11,7 @@ import { Todos } from "./components/Todos/Todos";
 import { Button } from "../../common/components/Button/Button";
 import { queries } from "./Queries";
 import { TodoListCreateForm } from "./components/TodoListCreateForm/TodoListCreateForm";
-import { TodoListHeader } from "./components/TodoListHeader/TodoListHeader";
+import { TodoListDeleteConfirmDialog } from "./components/TodoListDeleteConfirmDialog/TodoListConfirmDialog";
 
 type TodoListProps = StyledProps & {};
 
@@ -23,6 +23,17 @@ const StyledSelectListWrapper = styled.div`
   align-items: center;
 `;
 
+const sortByListName = (l1: TodoList, l2: TodoList) => {
+  const listName1 = l1.name.toLocaleLowerCase();
+  const listName2 = l2.name.toLocaleLowerCase();
+  if (listName1 < listName2 ) {
+    return -1;
+  } else if (listName1 > listName2) {
+    return 1;
+  }
+  return 0;
+}
+
 const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
   const todoListsLoad = useQuery<TodoListsData>(queries.GET_TODO_LISTS);
   const [selectedList, setSelectedList] = useState<string>(NONE_SELECTED);
@@ -30,11 +41,15 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
   const [addList, addListData] = useMutation(queries.CREATE_TODOLIST_WITH_NAME);
   const client = useApolloClient();
 
+  const [confirmDeleteDialogVisible, setConfirmDeleteDialogVisible] =
+    React.useState(false);
+  const handleDeleteButtonClick = () => setConfirmDeleteDialogVisible(true);
+
   const todoLists = todoListsLoad.data ? todoListsLoad.data.todoLists : [];
 
   useEffect(() => {
-    if (todoLists.length > 0) {
-      setSelectedList(todoLists[0].name);
+    if (todoLists.length > 0 && selectedList === NONE_SELECTED) {
+      setSelectedList([...todoLists].sort(sortByListName)[0].name);
     }
   }, [todoLists]);
 
@@ -73,6 +88,7 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
         })
         .then(() => {
           console.log("deleted list");
+          setConfirmDeleteDialogVisible(false);
           setSelectedList(NONE_SELECTED);
           todoListsLoad
             .refetch()
@@ -92,27 +108,37 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
       />
 
       <StyledSelectListWrapper>
+      <div style={{ marginRight: '2rem'}}>
+        <Button
+            appearance="secondary"
+            onClick={handleOpenNewListForm}
+            text={"New list"}
+            size={"small"}
+          />
+      </div>
         <TodoListSelector
           selected={selectedList}
-          todoLists={todoLists}
+          todoLists={[...todoLists].sort(sortByListName)}
           onSelectTodoListChange={handleSelectTodoList}
         />
         <Button
-          appearance="secondary"
-          onClick={handleOpenNewListForm}
-          text={"New list"}
-          size={"small"}
+          text={"delete"}
+          appearance={"secondary"}
+          size="small"
+          onClick={handleDeleteButtonClick}
         />
+        
       </StyledSelectListWrapper>
 
+      <TodoListDeleteConfirmDialog
+        listName={selectedList}
+        isVisible={confirmDeleteDialogVisible}
+        deleteList={handleDeleteList}
+        cancel={() => setConfirmDeleteDialogVisible(false)}
+      />
+
       {selectedList !== NONE_SELECTED && (
-        <>
-          <TodoListHeader
-            selectedListName={selectedList}
-            onDeleteList={handleDeleteList}
-          />
-          <Todos listName={selectedList} />
-        </>
+        <Todos listName={selectedList} />
       )}
     </div>
   );
