@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { style } from "./TodoRow.style";
 import React, { ChangeEvent, useState } from "react";
 import { Button } from "../../../../../../common/components/Button/Button";
-import { useApolloClient, useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client";
 import { queries } from "../../../../Queries";
 import { StyledCheckboxInput } from "../../../../../../common/components/Checkbox";
 import { COLOR_BLACK } from "../../../../../../common/contants/colors";
@@ -26,18 +26,25 @@ const StyledTextInput = styled.input<{checked: boolean}>`
 export type TodoRowProps = StyledProps & {
   todo: Todo;
   deleteTodo: (id: string) => void;
+  moveTodoToFirstInList: (todoId: string) => void;
+  moveTodoToLastInList: (todoId: string) => void;
   onEdited: () => void;
   addNewItem: () => void;
   inputRef?: React.Ref<HTMLInputElement>
 };
 
-function TodoRowBase({ className, todo, deleteTodo, onEdited, addNewItem, inputRef }: TodoRowProps) {
+function TodoRowBase({ className, todo, deleteTodo, moveTodoToFirstInList, moveTodoToLastInList, onEdited, addNewItem, inputRef }: TodoRowProps) {
   const [rowChecked, setRowChecked] = useState(todo.checked);
   const [taskText, setTaskText] = useState(todo.text);
   const [editTodo, editTodoData] = useMutation(queries.UPDATE_TODO);
 
   const handleClickCheckbox = (e: ChangeEvent<HTMLInputElement>) => {
     const checked = !rowChecked;
+    if (checked) {
+      moveTodoToLastInList(todo.todoId);
+    } else {
+      moveTodoToFirstInList(todo.todoId);
+    }
     setRowChecked(checked);
     editTodo({ variables: { todoId: todo.todoId, text: todo.text, checked: checked } })
       .then(() => {
@@ -52,7 +59,6 @@ function TodoRowBase({ className, todo, deleteTodo, onEdited, addNewItem, inputR
   const handleTextInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newText = e.target.value;
     setTaskText(newText);
-    
   };
 
   const handleSaveTask = () => {

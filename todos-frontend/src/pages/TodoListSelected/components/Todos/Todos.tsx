@@ -33,8 +33,6 @@ function TodosBase({ listName }: TodosProps) {
   );
   const [addTodo, addTodoData] = useMutation(queries.CREATE_TODO);
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [todosOrder, setTodosOrder] = useState<string[]>([]);
-  const [loadingData, setLoadingData] = useState<boolean>(false);
   const [updateTodoListOrder, updateTodoListOrderData] = useMutation(queries.UPDATE_TODOLIST_ORDER);
   const client = useApolloClient();
 
@@ -50,9 +48,14 @@ function TodosBase({ listName }: TodosProps) {
         ? loadTodoData.data?.todoLists[0].todosOrder
         : [];
 
-    setTodos(todoList);
-    setTodosOrder(todosOrder);
-    
+    let todosOrderToDisplay: Todo[] = [];
+    if (todoList.length > 0) {
+      const todosOrdered = todosOrder.map((todoId) => todoList.filter(todo => todo.todoId === todoId)[0]);
+      const checkedTodos = todosOrdered.filter(todo => todo.checked);
+      const uncheckedTodos = todosOrdered.filter(todo => !todo.checked);
+      todosOrderToDisplay = [...checkedTodos, ...uncheckedTodos];
+    }
+    setTodos(todosOrderToDisplay);
   }, [listName, loadTodoData.data]);
 
   useEffect(() => {
@@ -68,11 +71,9 @@ function TodosBase({ listName }: TodosProps) {
       .catch((error) => console.log(error));
   };
 
-  const updateTodosOrder = (newOrder: string[]) => {
+  const updateTodosOrderAndReload = (newOrder: string[]) => {
     updateTodoListOrder({ variables: { listName: listName, todosOrder: newOrder } })
     .then(() => {
-      console.log('updated order');
-      setTodosOrder(newOrder)
       reloadTodosList();
     })
     .catch((error) => {
@@ -89,7 +90,7 @@ function TodosBase({ listName }: TodosProps) {
       todoId: uuid,
       checked: false
     }
-    // TODO: fetch current todosOrder
+    // TODO: fetch current todosOrder first?
     const oldOrder = loadTodoData.data?.todoLists[0].todosOrder ?? [];
     const newOrder = [...oldOrder, newTodoItem.todoId]
     addTodo({
@@ -102,9 +103,9 @@ function TodosBase({ listName }: TodosProps) {
   };
 
   const handleDeleteTodo = (id: string) => {
-    // TODO: fetch current todosOrder
+    // TODO: fetch current todosOrder first?
     const oldOrder = loadTodoData.data?.todoLists[0].todosOrder ?? [];
-    const newOrder = oldOrder.filter((todoId: string) => todoId !== id)
+    const newOrder = oldOrder.filter((todoId: string) => todoId !== id);
     // Delete from todosOrder first
     updateTodoListOrder({ variables: { listName: listName, todosOrder: newOrder } })
     .then(() => {
@@ -127,6 +128,20 @@ function TodosBase({ listName }: TodosProps) {
     });
   };
 
+  const moveTodoToFirstInList = (id: string) => {
+    const oldOrder = loadTodoData.data?.todoLists[0].todosOrder ?? [];
+    const orderWithoutId = oldOrder.filter((todoId: string) => todoId !== id);
+    const newOrder = [id, ...orderWithoutId];
+    updateTodosOrderAndReload(newOrder);
+  };
+
+  const moveTodoToLastInList = (id: string) => {
+    const oldOrder = loadTodoData.data?.todoLists[0].todosOrder ?? [];
+    const orderWithoutId = oldOrder.filter((todoId: string) => todoId !== id);
+    const newOrder = [...orderWithoutId, id];
+    updateTodosOrderAndReload(newOrder);
+  }
+
   const handleEditedTodo = () => {
     if (todos) {
       reloadTodosList();
@@ -142,11 +157,13 @@ function TodosBase({ listName }: TodosProps) {
   return (
     <>
       {<StyledTodoList>
-          {todosOrder.map((todoId, idx) => (
+          {todos.map((todo, idx) => (
             <TodoRow
-              key={todoId}
-              todo={todos.filter(todo => todo.todoId === todoId)[0]}
+              key={todo.todoId}
+              todo={todo}
               deleteTodo={handleDeleteTodo}
+              moveTodoToFirstInList={moveTodoToFirstInList}
+              moveTodoToLastInList={moveTodoToLastInList}
               onEdited={handleEditedTodo}
               addNewItem={() => handleAddTask(listName)}
               inputRef={idx === todos.length - 1 ? refToLast: undefined}
