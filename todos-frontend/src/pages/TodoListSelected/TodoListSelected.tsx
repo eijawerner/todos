@@ -45,6 +45,24 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
     React.useState(false);
   const handleDeleteButtonClick = () => setConfirmDeleteDialogVisible(true);
 
+  // Online state
+const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+useEffect(() => {
+    // Update network status
+    const handleStatusChange = () => {
+      setIsOnline(navigator.onLine);
+    };
+
+    window.addEventListener('online', handleStatusChange);
+    window.addEventListener('offline', handleStatusChange);
+
+    return () => {
+      window.removeEventListener('online', handleStatusChange);
+      window.removeEventListener('offline', handleStatusChange);
+    };
+}, [isOnline]);
+
   const todoLists = todoListsLoad.data ? todoListsLoad.data.todoLists : [];
 
   useEffect(() => {
@@ -106,6 +124,8 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
         onCreateTodoList={handleCreateTodoList}
         onCloseOverlayClick={handleCloseOverlayClick}
       />
+      
+      {!isOnline && <div style={{ color: 'red', paddingTop: '8px'}}>Disconnected</div>}
 
       <StyledSelectListWrapper>
       <div style={{ marginRight: '2rem'}}>
