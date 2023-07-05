@@ -16,6 +16,7 @@ const GET_TODOS_IN_TODOLIST_WITH_NAME = gql`
         text
         checked
         todoId
+        order
       }
       todosOrder
     }
@@ -62,10 +63,10 @@ const DELETE_TODOLIST = gql`
 `;
 
 const CREATE_TODO = gql`
-  mutation ($listName: String!, $task: String!, $todoId: String!, $todosOrder: [String!]!) {
+  mutation ($listName: String!, $task: String!, $todoId: String!, $order: Float!) {
     updateTodoLists(
       where: { name: $listName }
-      update: { todosOrder: $todosOrder, todos: { create: [{ node: { text: $task, checked: false, todoId: $todoId } }] } }
+      update: { todos: { create: [{ node: { text: $task, checked: false, todoId: $todoId, order: $order } }] } }
     ) {
       todoLists {
         name
@@ -73,6 +74,7 @@ const CREATE_TODO = gql`
           text
           checked
           todoId
+          order
         }
         todosOrder
       }
@@ -90,10 +92,10 @@ const DELETE_TODO = gql`
 `;
 
 const UPDATE_TODO = gql`
-  mutation ($todoId: String!, $text: String!, $checked: Boolean) {
+  mutation ($todoId: String!, $text: String!, $checked: Boolean, $order: Float!) {
     updateTodos(
       where: { todoId: $todoId }
-      update: { text: $text, checked: $checked }
+      update: { text: $text, checked: $checked, order: $order }
     ) {
       info {
         nodesCreated

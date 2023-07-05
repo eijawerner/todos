@@ -3,17 +3,19 @@ const { Neo4jGraphQL } = require("@neo4j/graphql");
 const neo4j = require("neo4j-driver");
 require("dotenv").config();
 
+// TODO remove todosOrder
 const typeDefs = gql`
   type Todo {
     todoId: String! @unique
     text: String!
     checked: Boolean @default(value: false)
+    order: Float!
   }
   
   type TodoList {
     name: String! @unique
     todos: [Todo!]! @relationship(type: "BELONGS_TO", direction: IN)
-    todosOrder: [String!]!
+    todosOrder: [String]
     user: User! @relationship(type: "CREATED_BY", direction: OUT)
   } 
 

@@ -26,34 +26,17 @@ const StyledTextInput = styled.input<{checked: boolean}>`
 export type TodoRowProps = StyledProps & {
   todo: Todo;
   deleteTodo: (id: string) => void;
-  moveTodoToFirstInList: (todoId: string) => void;
-  moveTodoToLastInList: (todoId: string) => void;
-  onEdited: () => void;
+  checkTodo: (todo: Todo, checked: boolean) => void;
+  saveTodo: (todo: Todo) => void;
   addNewItem: () => void;
   inputRef?: React.Ref<HTMLInputElement>
 };
 
-function TodoRowBase({ className, todo, deleteTodo, moveTodoToFirstInList, moveTodoToLastInList, onEdited, addNewItem, inputRef }: TodoRowProps) {
-  const [rowChecked, setRowChecked] = useState(todo.checked);
+function TodoRowBase({ className, todo, deleteTodo, checkTodo, saveTodo, addNewItem, inputRef }: TodoRowProps) {
   const [taskText, setTaskText] = useState(todo.text);
-  const [editTodo, editTodoData] = useMutation(queries.UPDATE_TODO);
 
   const handleClickCheckbox = (e: ChangeEvent<HTMLInputElement>) => {
-    const checked = !rowChecked;
-    if (checked) {
-      moveTodoToLastInList(todo.todoId);
-    } else {
-      moveTodoToFirstInList(todo.todoId);
-    }
-    setRowChecked(checked);
-    editTodo({ variables: { todoId: todo.todoId, text: todo.text, checked: checked } })
-      .then(() => {
-        onEdited();
-      })
-      .catch((error) => {
-        console.log(error);
-        setRowChecked(!checked);
-      });
+    checkTodo(todo, !todo.checked);
   };
 
   const handleTextInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -62,15 +45,8 @@ function TodoRowBase({ className, todo, deleteTodo, moveTodoToFirstInList, moveT
   };
 
   const handleSaveTask = () => {
-    editTodo({
-        variables: { todoId: todo.todoId, text: taskText, checked: todo.checked },
-      })
-        .then(() => {
-          onEdited();
-        })
-        .catch((error) => {
-          console.log(error);
-        });
+    const newTodo = { todoId: todo.todoId, text: taskText, checked: todo.checked, order: todo.order };
+    saveTodo(newTodo);
   }
 
   const handleKeywordKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -86,7 +62,7 @@ function TodoRowBase({ className, todo, deleteTodo, moveTodoToFirstInList, moveT
           type="checkbox"
           id="task_done"
           name={`task${todo.text}`}
-          checked={rowChecked}
+          checked={todo.checked}
           value={todo.text}
           onChange={handleClickCheckbox}
         />
@@ -97,8 +73,9 @@ function TodoRowBase({ className, todo, deleteTodo, moveTodoToFirstInList, moveT
           onChange={handleTextInputChange}
           onKeyUp={handleKeywordKeyPress}
           ref={inputRef}
-          checked={rowChecked}
+          checked={todo.checked}
         />
+        <div>{`(${todo.order})`}</div>
         <Button
           appearance="secondary"
           size={"small"}
