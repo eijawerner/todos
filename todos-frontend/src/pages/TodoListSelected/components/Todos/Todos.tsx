@@ -9,7 +9,7 @@ import React, { useEffect, useState } from "react";
 import { style } from "./Todos.style";
 import { TodoRow } from "./components/TodoRow/TodoRow";
 import { Button } from "../../../../common/components/Button/Button";
-import { useApolloClient, useMutation, useQuery } from "@apollo/client";
+import { FetchResult, useApolloClient, useMutation, useQuery } from "@apollo/client";
 import { queries } from "../../Queries";
 import { useInterval } from "../../../../common/hooks/Time";
 import { COLOR_BLUE_SKY } from "../../../../common/contants/colors";
@@ -26,6 +26,14 @@ const StyledTodoList = styled.ul`
   padding: 0.5rem 0 1rem 0;
   margin: 0;
 `;
+
+const executeSequentially = (promiseFactories: any) => {
+  let result = Promise.resolve();
+  promiseFactories.forEach((promiseFactory: any) => {
+    result = result.then(promiseFactory);
+  });
+  return result;
+}
 
 function TodosBase({ listName }: TodosProps) {
 
@@ -51,25 +59,73 @@ function TodosBase({ listName }: TodosProps) {
   useEffect(() => {
     // Update network status
     const handleStatusChange = () => {
+      console.log('STATUS CHANGED', navigator.onLine);
       setIsOnline(navigator.onLine);
       if (navigator.onLine === true) {
+        console.log('ONLINE AGAIN!');
+        console.log('CURRENT changes', changes);
         if (changes.length > 0) {
           // load change requests
-          console.log('save changes!');
+          console.log('save changes!', changes);
+          let promises: (() => Promise<FetchResult<any, Record<string, any>, Record<string, any>>>)[] = [];
+          changes.forEach(change => {
+            if (change.type === 'update') {
+              console.log('update todo change');
+              const editPromise = () => editTodo({ variables: {...change.todo}});
+              promises.push(editPromise);
+            } else if (change.type === 'add') {
+              console.log('add todo change', {...change.todo});
+              const addPromise = () => addTodo({ variables: {
+                listName, 
+                task: change.todo.text,
+                todoId: change.todo.todoId,
+                checked: change.todo.checked,
+                order: change.todo.order
+                }});
+              promises.push(addPromise);
+            } else if (change.type === 'delete') {
+              const deletePromise = () => client
+                .mutate({
+                  mutation: queries.DELETE_TODO,
+                  variables: { todoId: change.todo.todoId },
+                })
+              promises.push(deletePromise);
+            }
+            });
+
+            executeSequentially(promises)
+            .then(() => {
+              console.log('successfully synced changes');
+              console.log('set empty list changes');
+              setChanges([]);
+              reloadTodosList();
+            })
+            .catch(() => {
+                console.log('failed to sync all changes');
+                console.log('set empty list changes');
+                setChanges([]);
+              });
+          
         } else {
           reloadTodosList();
         }
       }
     };
 
+    console.log('add online/offline event listener');
     window.addEventListener('online', handleStatusChange);
     window.addEventListener('offline', handleStatusChange);
 
     return () => {
+      console.log('remove online/offline event listener')
       window.removeEventListener('online', handleStatusChange);
       window.removeEventListener('offline', handleStatusChange);
     };
-  }, [isOnline]);
+  }, [changes]);
+
+  useEffect(() => {
+    console.log('changes', changes);
+  }, [changes])
 
   const client = useApolloClient();
 
@@ -161,22 +217,25 @@ function TodosBase({ listName }: TodosProps) {
     handleEditTodo(updatedTodo);
   }
 
-  const handleEditTodo = (todo: Todo) => {    
-    setChanges([{ type: 'update', todo: todo}])
+  const handleEditTodo = (todo: Todo) => {   
+    const editChange: ChangeRequest = { type: 'update', todo: todo, id: crypto.randomUUID()}
 
-    editTodo({ variables: {...todo}})
+    if (isOnline) {
+      console.log('handleEditTodo is ONLINE')
+      editTodo({ variables: {...todo}})
       .then(() => {
-        setChanges([]);
         reloadTodosList();
       })
       .catch((error) => {
         setErrorBanner('failed to edit task')
         setTimeout(() => setErrorBanner(null), 3000);
         console.log(error);
-        setChanges([]);
         reloadTodosList();
       });
-
+    } else {
+      console.log('add change', editChange);
+      setChanges([...changes, editChange]);
+    }
   }
 
   // Sync with latest todo list every minute
@@ -194,37 +253,42 @@ function TodosBase({ listName }: TodosProps) {
     }
     // Add locally first then update data as well
     // todo add id or timestamp to change request as well, to know which one to remove when succeds
-    setChanges([...changes, {type: 'add', todo: newTodoItem }]);
+    const addChange: ChangeRequest =  {type: 'add', todo: newTodoItem, id: crypto.randomUUID() };
+    
     setTodos([...todos, newTodoItem]);
 
-    addTodo({
-      variables: { 
-        listName: listName, 
-        task: newTodoItem.text, 
-        todoId: newTodoItem.todoId,
-        checked: newTodoItem.checked, 
-        order: newTodoItem.order},
-    })
+    if (isOnline) {
+      addTodo({
+        variables: { 
+          listName: listName, 
+          task: newTodoItem.text, 
+          todoId: newTodoItem.todoId,
+          checked: newTodoItem.checked, 
+          order: newTodoItem.order},
+      })
       .then((result) => {
-        setChanges([]);
-        reloadTodosList(); // TODO: reload to display list perhaps set locally before loading to show quicker?
+        reloadTodosList();
       })
       // Alert user and decide if want to retry or skip change?
       .catch((error) => {
-        setChanges([]);
         setTodos(todos.filter(todo => todo.todoId !== newTodoItem.todoId))
         setErrorBanner('failed to add task')
         setTimeout(() => setErrorBanner(null), 3000);
+        reloadTodosList();
         console.log('failed to add task', error)
       });
+    } else {
+      // Save change for later when online again
+      console.log('add change', addChange);
+      setChanges([...changes, addChange]);
+    }
   };
 
   const handleDeleteTodo = (id: string) => {
     // remove locally first
     setTodos(todos.filter(todo => todo.todoId !== id));
-    setChanges([{ type: 'delete', todo: {todoId: id, text: '', order: 0, checked: false }}]);
 
-    if (client) {
+    if (client && isOnline) {
       client
         .mutate({
           mutation: queries.DELETE_TODO,
@@ -232,14 +296,16 @@ function TodosBase({ listName }: TodosProps) {
         })
         .then((result) => {
           console.log(`deleted todo with id=${id}`);
-          // Todo remove ONLY the added one
-          setChanges([]);
           reloadTodosList();
         })
         .catch((error) => {
-          console.log(error)
-          setChanges([]);
+          console.log(error);
+          setErrorBanner('failed to delete task')
         });
+      } else {
+        // Save for when online again
+        console.log('add delete change');
+        setChanges([{ type: 'delete', todo: {todoId: id, text: '', order: 0, checked: false },  id: crypto.randomUUID()}]);
       }
   };
 

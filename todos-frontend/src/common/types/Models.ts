@@ -30,4 +30,5 @@ export type LocalTodo = Todo & {
 export type ChangeRequest = {
   type: 'add' | 'delete' | 'update';
   todo: Todo;
+  id: string;
 }

@@ -4,7 +4,7 @@
 CREATE (ee:Todo {text: 'do this too', checked: FALSE}) RETURN ee
 
 // create user
-CREATE (ee:User {name: 'Eija', email: 'test@test.se'}) RETURN ee
+CREATE (ee:User {name: 'eijrik', email: 'test@test.se'}) RETURN ee
 
 // create todolist
 CREATE (ee:TodoList {name: 'Att handla'}) RETURN ee

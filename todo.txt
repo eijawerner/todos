@@ -1,3 +1,6 @@
+CURRENT:
+- cleanup useEffect structure of online handling
+OBS: it doesn't work to change to offline in devtools, need to actual disconnect to internet
 
 style:
 - use delete icon buttons (create general icon button component)
@@ -6,6 +9,7 @@ style:
 
 
 DX:
+- add prettier to auto format files
 - Add e2e tests!
 - add alias to shared stuff
 - use tailwind?
@@ -13,7 +17,6 @@ DX:
 - add yarn dev command with nodemon, to autoload on save
 
 functionality:
-- reorder to first in list if checked changes to TRUE
 - make sure also todos in list are deleted when list is deleted
 - "are you sure?" overlay when deleting list
 - way to manually reload list
