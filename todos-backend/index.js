@@ -1,7 +1,9 @@
-const { gql, ApolloServer } = require("apollo-server");
-const { Neo4jGraphQL } = require("@neo4j/graphql");
-const neo4j = require("neo4j-driver");
-require("dotenv").config();
+import { ApolloServer } from "@apollo/server";
+import { startStandaloneServer } from '@apollo/server/standalone';
+import { gql } from "graphql-tag";
+import { Neo4jGraphQL } from "@neo4j/graphql";
+import neo4j from "neo4j-driver";
+import 'dotenv/config'
 
 // TODO remove todosOrder
 const typeDefs = gql`
@@ -34,14 +36,14 @@ const driver = neo4j.driver(
 const port = process.env.PORT || 4000;
 
 const neoSchema = new Neo4jGraphQL({ typeDefs, driver });
-neoSchema.getSchema()
-    .then((schema) => {
-        const server = new ApolloServer({
-            schema: schema
-        });
 
-        server.listen({ port: port }).then(({ url }) => {
-            console.log(`GraphQL server ready on ${url}`);
-        });
-    }).catch(error => console.log(error));
+const server = new ApolloServer({
+  schema: await neoSchema.getSchema(),
+});
 
+const { url } = await startStandaloneServer(server, {
+  context: async ({ req }) => ({ req }),
+  listen: { port: 4000 },
+});
+
+console.log(`🚀 Server ready at ${url}`);

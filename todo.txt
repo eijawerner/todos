@@ -1,4 +1,6 @@
 CURRENT:
+- why deployed backend not responding, needs to be restarted? check logs of backend in deployment
+
 - cleanup useEffect structure of online handling
 OBS: it doesn't work to change to offline in devtools, need to actual disconnect to internet
 

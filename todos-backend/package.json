@@ -6,16 +6,18 @@
   "repository": "https://github.com/eijawerner/todos.git",
   "author": "Eija Werner <github@eija.se>",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "dependencies": {
-    "@neo4j/graphql": "3.14.1",
-    "apollo-server": "3.11.1",
+    "@neo4j/graphql": "5.0.1",
+    "@apollo/server": "4.10.0",
     "dotenv": "^10.0.0",
-    "graphql": "16.6.0",
-    "neo4j-driver": "5.3.0"
+    "graphql": "16.8.1",
+    "neo4j-driver": "5.18.0",
+    "graphql-tag": "2.12.6"
   }
 }
