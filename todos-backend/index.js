@@ -5,7 +5,6 @@ import { Neo4jGraphQL } from "@neo4j/graphql";
 import neo4j from "neo4j-driver";
 import 'dotenv/config'
 
-// TODO remove todosOrder
 const typeDefs = gql`
   type Todo {
     todoId: String! @unique
@@ -17,7 +16,6 @@ const typeDefs = gql`
   type TodoList {
     name: String! @unique
     todos: [Todo!]! @relationship(type: "BELONGS_TO", direction: IN)
-    todosOrder: [String]
     user: User! @relationship(type: "CREATED_BY", direction: OUT)
   } 
 

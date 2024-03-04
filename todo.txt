@@ -1,6 +1,5 @@
 CURRENT:
-- why deployed backend not responding, needs to be restarted? check logs of backend in deployment
--- looks like cors error, look into that... but should not give 503, so could be some other reason unavailable
+- 
 
 - cleanup useEffect structure of online handling
 OBS: it doesn't work to change to offline in devtools, need to actual disconnect to internet

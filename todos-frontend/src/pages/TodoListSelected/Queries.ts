@@ -18,7 +18,6 @@ const GET_TODOS_IN_TODOLIST_WITH_NAME = gql`
         todoId
         order
       }
-      todosOrder
     }
   }
 `;
@@ -29,22 +28,8 @@ const CREATE_TODOLIST_WITH_NAME = gql`
       input: {
         name: $listName
         todos: {}
-        todosOrder: []
         user: { connect: { where: { node: { name: "eijrik" } } } }
       }
-    ) {
-      todoLists {
-        name
-      }
-    }
-  }
-`;
-
-const UPDATE_TODOLIST_ORDER = gql`
-  mutation ($listName: String!, $todosOrder: [String!]!) {
-    updateTodoLists(
-        where: { name: $listName }
-        update: { todosOrder: $todosOrder }
     ) {
       todoLists {
         name
@@ -76,7 +61,6 @@ const CREATE_TODO = gql`
           todoId
           order
         }
-        todosOrder
       }
     }
   }
@@ -112,6 +96,5 @@ export const queries = {
   DELETE_TODOLIST,
   CREATE_TODO,
   DELETE_TODO,
-  UPDATE_TODO,
-  UPDATE_TODOLIST_ORDER
+  UPDATE_TODO
 };

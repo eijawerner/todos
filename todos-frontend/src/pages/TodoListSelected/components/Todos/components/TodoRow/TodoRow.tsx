@@ -75,7 +75,6 @@ function TodoRowBase({ className, todo, deleteTodo, checkTodo, saveTodo, addNewI
           ref={inputRef}
           checked={todo.checked}
         />
-        <div>{`(${todo.order})`}</div>
         <Button
           appearance="secondary"
           size={"small"}

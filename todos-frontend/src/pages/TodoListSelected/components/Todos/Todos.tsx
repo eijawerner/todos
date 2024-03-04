@@ -45,7 +45,6 @@ function TodosBase({ listName }: TodosProps) {
 
   // Mutations
   const [addTodo, addTodoData] = useMutation(queries.CREATE_TODO);
-  const [updateTodoListOrder, updateTodoListOrderData] = useMutation(queries.UPDATE_TODOLIST_ORDER);
   const [editTodo, editTodoData] = useMutation(queries.UPDATE_TODO);
 
   // State
