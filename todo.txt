@@ -1,14 +1,14 @@
 CURRENT:
-- 
+- DONE: update to latest deps
+- fix warnings and deprecations (see console)
 
 - cleanup useEffect structure of online handling
-OBS: it doesn't work to change to offline in devtools, need to actual disconnect to internet
+NOTE: it doesn't work to change to offline in devtools, need to actual disconnect to internet
 
 style:
-- use delete icon buttons (create general icon button component)
+- use delete icon buttons (create general icon button component) (use https://github.com/tailwindlabs/heroicons)
 - improve styling of create new list overlay
 - custom style checkboxes
-
 
 DX:
 - add prettier to auto format files
@@ -29,3 +29,7 @@ functionality:
 - (add debounce)
 - load latest stored list when loading page
 - use subscriptions instead of poll (https://neo4j.com/docs/graphql-manual/current/subscriptions/)
+
+Backend future:
+- test to use aura served graphql backend?
+- or skip graphql in backend
