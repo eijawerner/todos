@@ -6,11 +6,17 @@ import neo4j from "neo4j-driver";
 import 'dotenv/config'
 
 const typeDefs = gql`
+  type TodoNote {
+    text: String!
+    links: [String!]!
+  }
+
   type Todo {
     todoId: String! @unique
     text: String!
     checked: Boolean @default(value: false)
     order: Float!
+    note: TodoNote @relationship(type: "HAS_NOTES", direction: OUT)
   }
   
   type TodoList {

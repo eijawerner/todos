@@ -7,6 +7,8 @@ import { useMutation } from "@apollo/client";
 import { queries } from "../../../../Queries";
 import { StyledCheckboxInput } from "../../../../../../common/components/Checkbox";
 import { COLOR_BLACK } from "../../../../../../common/contants/colors";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/20/solid";
+import { IconButton } from "../../../../../../common/components/IconButton/IconButton";
 
 const StyledTextInput = styled.input<{checked: boolean}>`
   flex-grow: 1;
@@ -29,10 +31,11 @@ export type TodoRowProps = StyledProps & {
   checkTodo: (todo: Todo, checked: boolean) => void;
   saveTodo: (todo: Todo) => void;
   addNewItem: () => void;
+  viewNote: (id: string) => void;
   inputRef?: React.Ref<HTMLInputElement>
 };
 
-function TodoRowBase({ className, todo, deleteTodo, checkTodo, saveTodo, addNewItem, inputRef }: TodoRowProps) {
+function TodoRowBase({ className, todo, deleteTodo, checkTodo, saveTodo, addNewItem, viewNote, inputRef }: TodoRowProps) {
   const [taskText, setTaskText] = useState(todo.text);
 
   const handleClickCheckbox = (e: ChangeEvent<HTMLInputElement>) => {
@@ -75,12 +78,12 @@ function TodoRowBase({ className, todo, deleteTodo, checkTodo, saveTodo, addNewI
           ref={inputRef}
           checked={todo.checked}
         />
-        <Button
-          appearance="secondary"
-          size={"small"}
-          onClick={() => deleteTodo(todo.todoId)}
-          text={"delete"}
-        />
+        <IconButton onClick={() => viewNote(todo.todoId)}>
+          <PencilSquareIcon />
+        </IconButton>
+        <IconButton onClick={() => deleteTodo(todo.todoId)}>
+          <TrashIcon />
+        </IconButton>
       </div>
     </li>
   );

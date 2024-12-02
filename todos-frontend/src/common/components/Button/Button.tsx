@@ -8,9 +8,9 @@ export type ButtonProps = ButtonHTMLAttributes<any> &
     text: string;
     onClick?: () => void;
     size?: "regular" | "small";
-    appearance: "primary" | "secondary";
+    appearance?: "primary" | "secondary";
   };
-function ButtonBase({ text, onClick, className }: ButtonProps) {
+function ButtonBase({ text, onClick, className, appearance = "secondary", size = "regular" }: ButtonProps) {
   return (
     <button className={className} onClick={onClick}>
       {text}

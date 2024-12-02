@@ -9,8 +9,12 @@ export interface Todo {
   checked: boolean;
   todoId: string;
   order: number;
-  // next: Todo
-  // prev: Todo
+  note?: TodoNote;
+}
+
+export interface TodoNote {
+  text: string;
+  links: string[];
 }
 
 export interface TodoList {

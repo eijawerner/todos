@@ -147,7 +147,6 @@ useEffect(() => {
           size="small"
           onClick={handleDeleteButtonClick}
         />
-        
       </StyledSelectListWrapper>
 
       <TodoListDeleteConfirmDialog
