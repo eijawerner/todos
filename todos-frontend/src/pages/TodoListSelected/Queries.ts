@@ -16,7 +16,10 @@ const GET_TODOS_IN_TODOLIST_WITH_NAME = gql`
         text
         checked
         todoId
-        order
+        order,
+        note {
+          text
+        }
       }
     }
   }
@@ -89,6 +92,47 @@ const UPDATE_TODO = gql`
   }
 `;
 
+const CREATE_TODO_NOTE = gql`
+  mutation ($todoId: String!, $noteText: String!) {
+    updateTodos(
+      where: { todoId: $todoId }
+      update: { note: { create: { node: { text: $noteText, links: [] } } } }
+      ) {
+      todos {
+        todoId,
+        note {
+          text
+        }
+      }
+    }
+  }
+`;
+
+const GET_TODO_NOTE = gql`
+  query ($todoId: String!) {
+    todos(where: { todoId: $todoId }) {
+      note {
+        text
+      }
+    }
+  }
+`;
+
+const UPDATE_TODO_NOTE = gql`
+  mutation ($todoId: String!, $noteText: String!) {
+    updateTodos(
+    where: { todoId: $todoId }
+    update: { note: { update: { node: { text: $noteText, links: [] } } } }
+  ) {
+      todos {
+        note {
+          text
+        }
+      }
+    }
+  }
+`;
+
 export const queries = {
   GET_TODO_LISTS,
   GET_TODOS_IN_TODOLIST_WITH_NAME,
@@ -96,5 +140,8 @@ export const queries = {
   DELETE_TODOLIST,
   CREATE_TODO,
   DELETE_TODO,
-  UPDATE_TODO
+  UPDATE_TODO,
+  CREATE_TODO_NOTE,
+  GET_TODO_NOTE,
+  UPDATE_TODO_NOTE
 };

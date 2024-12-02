@@ -13,6 +13,7 @@ import { FetchResult, useApolloClient, useMutation, useQuery } from "@apollo/cli
 import { queries } from "../../Queries";
 import { useInterval } from "../../../../common/hooks/Time";
 import { COLOR_BLUE_SKY } from "../../../../common/contants/colors";
+import { Note } from "./components/Note/Note";
 
 export type TodosProps = StyledProps & {
   listName: string;
@@ -51,6 +52,7 @@ function TodosBase({ listName }: TodosProps) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [changes, setChanges] = useState<ChangeRequest[]>([]);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const [noteIsVisible, setNoteIsVisible] = useState<string | null>(null);
 
    // Online state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -308,11 +310,75 @@ function TodosBase({ listName }: TodosProps) {
       }
   };
 
+  const handleAddNote = (todoId: string) => {
+    const note = {
+      text: 'test',
+      links: [],
+    }
+    client
+      .mutate({
+        mutation: queries.CREATE_TODO_NOTE,
+        variables: { todoId, noteText: note.text },
+      })
+      .then((result) => {
+        console.log(`added note to todo with id=${todoId}`);
+        reloadTodosList();
+        setNoteIsVisible(todoId);
+      })
+      .catch((error) => {
+        console.log(error);
+        setErrorBanner('failed to add note')
+        setTimeout(() => setErrorBanner(null), 3000);
+      });
+  }
+
+  const viewNote = (todoId: string) => {
+    // fetch note for todo id, check if exists otherwise create it
+    setNoteIsVisible(todoId);
+    client.query({
+      query: queries.GET_TODO_NOTE,
+      variables: { todoId: todoId },
+    }).then((result) => {
+      console.log('result', result);
+      if (result.data.todos.length === 0) {
+        console.error('no todo with that id found', todoId);
+        return;
+      }
+      if (!result.data.todos[0].note) {
+        console.error('no note found, creating...', todoId);
+        handleAddNote(todoId);
+        return;
+      }
+      console.log('note', result.data.todos[0].note.text);
+    }).catch((error) => {
+      console.log('error', error);
+    });
+  }
+
+  const editNoteText = (noteText: string) => {
+    console.log('edit note', noteText);
+    const todoIdOfNodeToEdit = noteIsVisible;
+    setNoteIsVisible(null);
+    client.mutate({
+      mutation: queries.UPDATE_TODO_NOTE,
+      variables: { todoId: todoIdOfNodeToEdit, noteText: noteText },
+    }).then((result) => {
+      console.log('note updated', result);     
+      reloadTodosList();
+    }).catch((error) => {
+      console.log('error', error);
+      setErrorBanner('failed to edit note')
+      setTimeout(() => setErrorBanner(null), 3000);
+    });
+  }
+
   return (
     <>
+      {noteIsVisible && <Note note={todos.find(t => t.todoId === noteIsVisible)?.note} editNoteText={editNoteText} onClose={() => setNoteIsVisible(null)} />
+      }
       {loadTodoData.loading && <p>loading...</p>}
       {loadTodoData.error && <p>{`Error: ${loadTodoData.error.message}`}</p>}
-      {errorBanner && <p>{errorBanner}</p>}
+      {errorBanner && <p style={{fontSize: '1.5rem', color: 'red'}}>{errorBanner}</p>}
       {<StyledTodoList>
           {todos.map((todo, idx) => (
             <TodoRow
@@ -322,6 +388,7 @@ function TodosBase({ listName }: TodosProps) {
               checkTodo={handleCheckTodo}
               saveTodo={handleEditTodo}
               addNewItem={() => handleAddTask(listName)}
+              viewNote={viewNote}
               inputRef={idx === todos.length - 1 ? refToLast: undefined}
             />
           ))}

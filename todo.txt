@@ -1,12 +1,16 @@
 CURRENT:
 - DONE: update to latest deps
 - fix warnings and deprecations (see console)
+- add notes (text and link to todos)
+== delete note when node is deleted
+== add to offline edits
+== onclick outside hook to close dialog if clicking outside
+== fix styling of dialog and make it a reusable component
 
 - cleanup useEffect structure of online handling
 NOTE: it doesn't work to change to offline in devtools, need to actual disconnect to internet
 
 style:
-- use delete icon buttons (create general icon button component) (use https://github.com/tailwindlabs/heroicons)
 - improve styling of create new list overlay
 - custom style checkboxes
 
@@ -14,8 +18,7 @@ DX:
 - add prettier to auto format files
 - Add e2e tests!
 - add alias to shared stuff
-- use tailwind?
-- add reset css file
+- move to tailwind?
 - add yarn dev command with nodemon, to autoload on save
 
 functionality:
