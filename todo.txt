@@ -1,6 +1,7 @@
 CURRENT:
 - DONE: update to latest deps
 - fix warnings and deprecations (see console)
+- add notes (text and link to todos)
 
 - cleanup useEffect structure of online handling
 NOTE: it doesn't work to change to offline in devtools, need to actual disconnect to internet

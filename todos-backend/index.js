@@ -25,6 +25,20 @@ const typeDefs = gql`
     todoLists: [TodoList!]! @relationship(type: "CREATED_BY", direction: IN)
   }
 `;
+/*
+type Todo {
+    todoId: String! @unique
+    text: String!
+    checked: Boolean @default(value: false)
+    order: Float!
+    todoNote: TodoNote @relationship(type: "HAS_NOTES", direction: OUT)
+  }
+type TodoNote {
+    todoNodeId: String! @unique
+    text: String
+    links: [String]
+  }
+*/
 
 const driver = neo4j.driver(
     process.env.NEO4J_URI,

@@ -7,6 +7,8 @@ import { useMutation } from "@apollo/client";
 import { queries } from "../../../../Queries";
 import { StyledCheckboxInput } from "../../../../../../common/components/Checkbox";
 import { COLOR_BLACK } from "../../../../../../common/contants/colors";
+import { IconButton } from "../../../../../../icons/TrashIcon";
+import { TrashIcon } from "@heroicons/react/20/solid";
 
 const StyledTextInput = styled.input<{checked: boolean}>`
   flex-grow: 1;
@@ -81,6 +83,9 @@ function TodoRowBase({ className, todo, deleteTodo, checkTodo, saveTodo, addNewI
           onClick={() => deleteTodo(todo.todoId)}
           text={"delete"}
         />
+        <IconButton>
+          <TrashIcon />
+        </IconButton>
       </div>
     </li>
   );
