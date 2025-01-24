@@ -219,7 +219,17 @@
     tslib "^2.4.0"
     value-or-promise "^1.0.12"
 
-"@graphql-tools/utils@^10.0.0", "@graphql-tools/utils@^10.0.13":
+"@graphql-tools/utils@10.6.1":
+  version "10.6.1"
+  resolved "https://registry.yarnpkg.com/@graphql-tools/utils/-/utils-10.6.1.tgz#5d7477ad1f917c817184bb6a1bd1266dc4b354b2"
+  integrity sha512-XHl0/DWkMf/8Dmw1F3RRoMPt6ZwU4J707YWcbPjS+49WZNoTVz6f+prQ4GuwZT8RqTPtrRawnGU93AV73ZLTfQ==
+  dependencies:
+    "@graphql-typed-document-node/core" "^3.1.1"
+    cross-inspect "1.0.1"
+    dset "^3.1.2"
+    tslib "^2.4.0"
+
+"@graphql-tools/utils@^10.0.13":
   version "10.1.0"
   resolved "https://registry.yarnpkg.com/@graphql-tools/utils/-/utils-10.1.0.tgz#d8c23a8b8636a5df59b14991bf25eae5ac15d314"
   integrity sha512-wLPqhgeZ9BZJPRoaQbsDN/CtJDPd/L4qmmtPkjI3NuYJ39x+Eqz1Sh34EAGMuDh+xlOHqBwHczkZUpoK9tvzjw==
@@ -252,22 +262,22 @@
   resolved "https://registry.yarnpkg.com/@graphql-typed-document-node/core/-/core-3.2.0.tgz#5f3d96ec6b2354ad6d8a28bf216a1d97b5426861"
   integrity sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ==
 
-"@neo4j/cypher-builder@^2.0.0":
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/@neo4j/cypher-builder/-/cypher-builder-2.0.1.tgz#8cf010dfbb7247580fe8710c48f2dda09c5ef39b"
-  integrity sha512-9eaH6CmAeQ2H/0ALLEUamc2BTK2GDLCRQ0JpIDJ2+q4TFGjuzZEygnszFeIEwKc7A+QF2f+srIN8pM8hUmDunw==
+"@neo4j/cypher-builder@2.2.1":
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/@neo4j/cypher-builder/-/cypher-builder-2.2.1.tgz#e5bdb59f21251a8d30325a406352c72d9e9eef4f"
+  integrity sha512-QxTdWlFz9SpnUA4Y/CsohvT08CPF7DnUso4hjsS4TyMXKwFZcXbpRSyi3pyf14nxbnNswEW8TZmo5Z5T/ezebw==
 
-"@neo4j/graphql@6.1.0":
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/@neo4j/graphql/-/graphql-6.1.0.tgz#cd76150cc8f54bc501ee7ff89479e6d868524964"
-  integrity sha512-60nQ+3ZX7yRC7zjDlCanYtdlUL7E5GJcwHAwZqagNXKonN5pErayADUQfwPVXwiEBGvCU1KAimolkJZ4SQS5Wg==
+"@neo4j/graphql@6.3.0":
+  version "6.3.0"
+  resolved "https://registry.yarnpkg.com/@neo4j/graphql/-/graphql-6.3.0.tgz#c7475976c91e3affcca401a0a8e11cb213f106dd"
+  integrity sha512-rvkSd9B1BjgNyq/S4rBCEZQtOOV0wIbbdliLAkv8mGswnwgnYTFzZxvZzcqS8XNDqeKUvLJmypzUsC+NZ1X9Sg==
   dependencies:
     "@apollo/subgraph" "^2.2.3"
     "@graphql-tools/merge" "^9.0.0"
     "@graphql-tools/resolvers-composition" "^7.0.0"
     "@graphql-tools/schema" "^10.0.0"
-    "@graphql-tools/utils" "^10.0.0"
-    "@neo4j/cypher-builder" "^2.0.0"
+    "@graphql-tools/utils" "10.6.1"
+    "@neo4j/cypher-builder" "2.2.1"
     camelcase "^6.3.0"
     debug "^4.3.4"
     dot-prop "^6.0.1"
@@ -1009,27 +1019,27 @@ negotiator@0.6.3, negotiator@^0.6.3:
   resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.6.3.tgz#58e323a72fedc0d6f9cd4d31fe49f51479590ccd"
   integrity sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==
 
-neo4j-driver-bolt-connection@5.26.0:
-  version "5.26.0"
-  resolved "https://registry.yarnpkg.com/neo4j-driver-bolt-connection/-/neo4j-driver-bolt-connection-5.26.0.tgz#071444c8ae1300d31210ddc1de9d2bca7c9c454c"
-  integrity sha512-Tq548RNZJoQdmZhTRcUxDntU1DkNhhKF8oWWuCQ7OtX20EIYpIgVkQYWJu75bSiYyUGxmuSk4U02oXNBdggjgg==
+neo4j-driver-bolt-connection@5.27.0:
+  version "5.27.0"
+  resolved "https://registry.yarnpkg.com/neo4j-driver-bolt-connection/-/neo4j-driver-bolt-connection-5.27.0.tgz#c452059754213a073085dcad484b9c5f8737582e"
+  integrity sha512-TNKokHcZCkyeZbHLBB+CGciWvyLdAK6tBNFHg5zRMzheVFaJjjEhsHmjwhIA+wy+8ld4Oo0/qv/pyJNRpWAj3A==
   dependencies:
     buffer "^6.0.3"
-    neo4j-driver-core "5.26.0"
+    neo4j-driver-core "5.27.0"
     string_decoder "^1.3.0"
 
-neo4j-driver-core@5.26.0:
-  version "5.26.0"
-  resolved "https://registry.yarnpkg.com/neo4j-driver-core/-/neo4j-driver-core-5.26.0.tgz#6ac836dc944941e11f06ba7dabf1b50b6335ac41"
-  integrity sha512-S3nHbqGuKPktWkRGenfx8Dt4MuqqrrUQjo4COhRj9r9P6WOjd0jzF/wyZb8H44pW5Qx/gmqn9B3If+7gfiaRmw==
+neo4j-driver-core@5.27.0:
+  version "5.27.0"
+  resolved "https://registry.yarnpkg.com/neo4j-driver-core/-/neo4j-driver-core-5.27.0.tgz#c22c9dd3d4a460c47892b981b8c4d9f10a7f3d31"
+  integrity sha512-TXZLNjtLrySRyBPBiRkQ/Ewmt4PQG0rm/Q2ZPNPqxbq1S0UVd53PQ2N6jxKiWlkrlPfrVRd2DyE8M7X9MDXxZw==
 
-neo4j-driver@5.26.0:
-  version "5.26.0"
-  resolved "https://registry.yarnpkg.com/neo4j-driver/-/neo4j-driver-5.26.0.tgz#1642814062ed58152fa0c537a2680f2526631e43"
-  integrity sha512-cQEzXHmUxWb2uBOqsvjs3/GxyVtOgP6WsOpozqTvI47Zzopzw/4b/E4uCJQR5bIn1UXdcUfZKJ60jOmAzEvM8A==
+neo4j-driver@5.27.0:
+  version "5.27.0"
+  resolved "https://registry.yarnpkg.com/neo4j-driver/-/neo4j-driver-5.27.0.tgz#7db6d521dee50cc11502f1d89f43981bcc615702"
+  integrity sha512-XCSGhQUxOzaJi+SBq/6kH9dpVZ6WTE9f8m2TxCKm2CySOSY21sZ/3n//FRWFM0X6a3sBFTOE2PNkZfxSj92G5w==
   dependencies:
-    neo4j-driver-bolt-connection "5.26.0"
-    neo4j-driver-core "5.26.0"
+    neo4j-driver-bolt-connection "5.27.0"
+    neo4j-driver-core "5.27.0"
     rxjs "^7.8.1"
 
 node-abort-controller@^3.1.1:
