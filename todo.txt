@@ -1,8 +1,6 @@
 CURRENT:
-- DONE: update to latest deps
 - fix warnings and deprecations (see console)
-- add notes (text and link to todos)
-== delete note when node is deleted
+- left of add notes (text and link to todos):
 == add to offline edits
 == onclick outside hook to close dialog if clicking outside
 == fix styling of dialog and make it a reusable component
@@ -36,3 +34,7 @@ functionality:
 Backend future:
 - test to use aura served graphql backend?
 - or skip graphql in backend
+
+CYPHER:
+- get all nodes without relationships: match (n) where not (n)--() RETURN n;
+- delete all nodes without rels: match (n) where not (n)--() delete n;

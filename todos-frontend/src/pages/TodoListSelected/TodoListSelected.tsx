@@ -99,21 +99,27 @@ useEffect(() => {
 
   const handleDeleteList = () => {
     if (client) {
-      client
-        .mutate({
-          mutation: queries.DELETE_TODOLIST,
-          variables: { todoListName: selectedList },
-        })
-        .then(() => {
-          console.log("deleted list");
-          setConfirmDeleteDialogVisible(false);
-          setSelectedList(NONE_SELECTED);
-          todoListsLoad
-            .refetch()
-            .then((r) => console.log("reloaded todo lists"))
-            .catch((error) => console.log(error));
-        })
-        .catch(console.log);
+        client.mutate({
+            mutation: queries.DELETE_TODOS_IN_TODOLIST,
+            variables: { todoListName: selectedList },
+        }).then(() => {
+            client
+                .mutate({
+                    mutation: queries.DELETE_TODOLIST,
+                    variables: { todoListName: selectedList },
+                })
+                .then(() => {
+                    console.log("deleted list");
+                    setConfirmDeleteDialogVisible(false);
+                    setSelectedList(NONE_SELECTED);
+                    todoListsLoad
+                        .refetch()
+                        .then((r) => console.log("reloaded todo lists"))
+                        .catch(console.log);
+                })
+                .catch((e) => console.error('failed to delete todos', e));
+        }).catch((e) => console.error('failed to delete todo list', e));
+
     }
   };
 

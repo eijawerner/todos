@@ -85,6 +85,11 @@ function TodosBase({ listName }: TodosProps) {
                 }});
               promises.push(addPromise);
             } else if (change.type === 'delete') {
+              const deleteNoteInTodo = () => client
+                  .mutate({
+                mutation: queries.DELETE_TODO_NOTE_BELONGING_TO_TODO,
+                variables: { todoId: change.todo.todoId }});
+              promises.push(deleteNoteInTodo);
               const deletePromise = () => client
                 .mutate({
                   mutation: queries.DELETE_TODO,
@@ -292,17 +297,23 @@ function TodosBase({ listName }: TodosProps) {
     if (client && isOnline) {
       client
         .mutate({
-          mutation: queries.DELETE_TODO,
-          variables: { todoId: id },
-        })
-        .then((result) => {
-          console.log(`deleted todo with id=${id}`);
-          reloadTodosList();
-        })
-        .catch((error) => {
-          console.log(error);
-          setErrorBanner('failed to delete task')
-        });
+          mutation: queries.DELETE_TODO_NOTE_BELONGING_TO_TODO,
+          variables: { todoId: id }
+        }).then(() => {
+        client
+            .mutate({
+              mutation: queries.DELETE_TODO,
+              variables: { todoId: id },
+            })
+            .then((result) => {
+              console.log(`deleted todo with id=${id}`);
+              reloadTodosList();
+            })
+            .catch((error) => {
+              console.log(error);
+              setErrorBanner('failed to delete task')
+            });
+      }).catch(e => console.log('failed to delete todo note belonging to todo to be deleted', e))
       } else {
         // Save for when online again
         console.log('add delete change');

@@ -6,26 +6,28 @@ import neo4j from "neo4j-driver";
 import 'dotenv/config'
 
 const typeDefs = gql`
-  type TodoNote {
+  type TodoNote @node {
     text: String!
     links: [String!]!
+    todo: Todo! @relationship(type: "HAS_NOTES", direction: IN)
   }
 
-  type Todo {
+  type Todo @node {
     todoId: String! @unique
     text: String!
     checked: Boolean @default(value: false)
     order: Float!
     note: TodoNote @relationship(type: "HAS_NOTES", direction: OUT)
+    list: TodoList! @relationship(type: "BELONGS_TO", direction: OUT)
   }
   
-  type TodoList {
+  type TodoList @node {
     name: String! @unique
     todos: [Todo!]! @relationship(type: "BELONGS_TO", direction: IN)
     user: User! @relationship(type: "CREATED_BY", direction: OUT)
   } 
 
-  type User {
+  type User @node {
     name: String! @unique
     email: String!
     todoLists: [TodoList!]! @relationship(type: "CREATED_BY", direction: IN)

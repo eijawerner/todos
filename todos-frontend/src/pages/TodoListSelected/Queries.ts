@@ -78,6 +78,24 @@ const DELETE_TODO = gql`
   }
 `;
 
+const DELETE_TODOS = gql`
+  mutation ($todoIds: [String!]!) {
+    deleteTodos(where: { todoId_IN: $todoIds }) {
+      nodesDeleted
+      relationshipsDeleted
+    }
+  }
+`;
+
+const DELETE_TODOS_IN_TODOLIST = gql`
+  mutation ($todoListName: String!) {
+   deleteTodos(where: { list: { name: $todoListName } }) {
+    nodesDeleted
+    relationshipsDeleted
+   }
+ }
+`;
+
 const UPDATE_TODO = gql`
   mutation ($todoId: String!, $text: String!, $checked: Boolean, $order: Float!) {
     updateTodos(
@@ -133,6 +151,21 @@ const UPDATE_TODO_NOTE = gql`
   }
 `;
 
+const DELETE_TODO_NOTE_BELONGING_TO_TODO = gql`
+  mutation ($todoId: String!) {
+    deleteTodoNotes(
+      where: {
+        todo: {
+          todoId: $todoId
+        }
+      }
+    ) {
+      nodesDeleted
+      relationshipsDeleted
+    }
+  }
+`;
+
 export const queries = {
   GET_TODO_LISTS,
   GET_TODOS_IN_TODOLIST_WITH_NAME,
@@ -140,8 +173,11 @@ export const queries = {
   DELETE_TODOLIST,
   CREATE_TODO,
   DELETE_TODO,
+  DELETE_TODOS,
+  DELETE_TODOS_IN_TODOLIST,
   UPDATE_TODO,
   CREATE_TODO_NOTE,
   GET_TODO_NOTE,
-  UPDATE_TODO_NOTE
+  UPDATE_TODO_NOTE,
+  DELETE_TODO_NOTE_BELONGING_TO_TODO
 };
