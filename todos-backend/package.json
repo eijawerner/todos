@@ -22,5 +22,6 @@
     "graphql": "16.9.0",
     "neo4j-driver": "5.27.0",
     "graphql-tag": "2.12.6"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }

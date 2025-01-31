@@ -1,9 +1,7 @@
 CURRENT:
 - fix warnings and deprecations (see console)
-- left of add notes (text and link to todos):
-== add to offline edits
-== onclick outside hook to close dialog if clicking outside
-== fix styling of dialog and make it a reusable component
+- leftovers of notes:
+-- add to offline edits
 
 - cleanup useEffect structure of online handling
 NOTE: it doesn't work to change to offline in devtools, need to actual disconnect to internet
