@@ -2,6 +2,7 @@ import * as React from "react";
 import ReactDOM from "react-dom";
 import { App } from "./App";
 import { ApolloClient, ApolloProvider, InMemoryCache } from "@apollo/client";
+
 // TODO cleanup
 const apolloServerUrl: string =
   typeof import.meta.env.VITE_BACKEND_URL === "string"

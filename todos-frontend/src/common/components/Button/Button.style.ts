@@ -13,7 +13,7 @@ export const style = (props: ButtonProps) => `
   font-size: 1.6rem;
   color: ${COLOR_DARK_BLUE};
   background: ${props.appearance === "primary" ? COLOR_ORANGE : COLOR_BLUE_SKY};
-  padding: ${props.size === "small" ? "4px 4px" : "8px 16px"};
+  padding: ${props.size === "small" ? "0px 8px" : "8px 16px"};
   border-radius: ${props.size === "small" ? "4px" : "8px"};
   border: hsl(0deg, 0%, 0%);
   cursor: pointer;

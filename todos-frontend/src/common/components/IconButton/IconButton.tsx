@@ -26,8 +26,8 @@ const StyledIconButton = styled.button`
 `;
 
 const StyledIcon = styled.div`
-    width: 15px;
-    height: 15px;
+    width: 34px;
+    height: 34px;
     color: ${COLOR_DARK_BLUE};
     padding: 0.5rem;
 `;
