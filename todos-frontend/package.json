@@ -28,6 +28,8 @@
   "dependencies": {
     "@apollo/client": "^3.11.10",
     "@heroicons/react": "^2.2.0",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/modifiers": "^6.3.1",
     "graphql": "^16.9.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
