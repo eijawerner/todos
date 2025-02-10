@@ -1,7 +1,7 @@
 import { StyledProps, Todo } from "../../../../../../common/types/Models";
 import styled from "styled-components";
 import { style } from "./TodoRow.style";
-import React, { ChangeEvent, useState } from "react";
+import React, { ChangeEvent, useContext, useState } from "react";
 import { Button } from "../../../../../../common/components/Button/Button";
 import { useMutation } from "@apollo/client";
 import { queries } from "../../../../Queries";
@@ -9,6 +9,7 @@ import { StyledCheckboxInput } from "../../../../../../common/components/Checkbo
 import { COLOR_BLACK } from "../../../../../../common/contants/colors";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/20/solid";
 import { IconButton } from "../../../../../../common/components/IconButton/IconButton";
+import { DebugContext } from "../../../../../../App";
 
 const StyledTextInput = styled.input<{checked: boolean}>`
   flex-grow: 1;
@@ -25,6 +26,11 @@ const StyledTextInput = styled.input<{checked: boolean}>`
   text-decoration: ${props => props.checked ? 'line-through;': undefined}
 `;
 
+const StyledDebugOrderText = styled.span`
+  font-size: 2rem;
+  color: tomato;
+`;
+
 export type TodoRowProps = StyledProps & {
   todo: Todo;
   deleteTodo: (id: string) => void;
@@ -37,6 +43,8 @@ export type TodoRowProps = StyledProps & {
 
 function TodoRowBase({ className, todo, deleteTodo, checkTodo, saveTodo, addNewItem, viewNote, inputRef }: TodoRowProps) {
   const [taskText, setTaskText] = useState(todo.text);
+
+  const debugEnabled = useContext(DebugContext);
 
   const handleClickCheckbox = (e: ChangeEvent<HTMLInputElement>) => {
     checkTodo(todo, !todo.checked);
@@ -78,6 +86,7 @@ function TodoRowBase({ className, todo, deleteTodo, checkTodo, saveTodo, addNewI
           ref={inputRef}
           checked={todo.checked}
         />
+        {debugEnabled && (<StyledDebugOrderText>{todo.order}</StyledDebugOrderText>)}
         <IconButton onClick={() => viewNote(todo.todoId)}>
           <PencilSquareIcon />
         </IconButton>
