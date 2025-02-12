@@ -11,6 +11,8 @@ const DebugButton = styled.button`
   position: absolute;
   opacity: 0;
   font-size: 1.2rem;
+  height: 3rem;
+  width: 3rem;
 `;
 
 const GlobalStyles = createGlobalStyle`
@@ -24,7 +26,7 @@ export const App: React.FC = () => {
 
   return (
     <DebugContext.Provider value={debugEnabled}>
-      <DebugButton onDoubleClick={() => setDebugEnabled(!debugEnabled)}>{`${debugEnabled ? 'ON': 'OFF'}`}</DebugButton>
+      <DebugButton onDoubleClick={() => setDebugEnabled(!debugEnabled)}>{`${debugEnabled ? '1': '0'}`}</DebugButton>
       <GlobalStyles />
       <TodoListSelected />
     </DebugContext.Provider>
