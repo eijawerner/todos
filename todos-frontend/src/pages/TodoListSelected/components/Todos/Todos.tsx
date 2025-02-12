@@ -251,7 +251,6 @@ function TodosBase({ listName }: TodosProps) {
     const addChange: ChangeRequest =  {type: 'add', todo: newTodoItem, id: crypto.randomUUID() };
     
     setTodos([...todos, newTodoItem]);
-    setFocusToItem(refToLast);
 
     if (isOnline) {
       addTodo({
@@ -264,6 +263,7 @@ function TodosBase({ listName }: TodosProps) {
       })
       .then((result) => {
         // success, do nothing
+        setFocusToItem(refToLast);
       })
       // Alert user and decide if want to retry or skip change?
       .catch((error) => {
