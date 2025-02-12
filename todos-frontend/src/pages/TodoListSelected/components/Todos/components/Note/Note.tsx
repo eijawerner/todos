@@ -52,7 +52,7 @@ const NotesHeader = styled.h2`
 const ActionButtons = styled.div`
   display: flex;
   gap: 1rem;
-  justify-content: space-between;
+  justify-content: flex-end;
 `;
 
 const Backdrop = styled.div`
@@ -77,16 +77,20 @@ export const Note = ({note, editNoteText, onClose}: NoteProps) => {
         setNoteText(noteText);
     }
 
+    const saveAndClose = () => {
+      editNoteText(noteText);
+      onClose();
+    }
+
     return (
       <>
-      <Backdrop onClick={onClose} />
+      <Backdrop onClick={saveAndClose} />
       <NoteContainer>
         <NoteFlexContainer>
         <NotesHeader>Notes</NotesHeader>
         <StyledTextArea value={noteText} onChange={(e) => updateNoteText(e.target.value)} />
         <ActionButtons>
-          <Button onClick={onClose} text='Cancel'  />
-          <Button onClick={() => editNoteText(noteText)} text='Save' appearance='primary' />
+          <Button onClick={saveAndClose} text='Close' size='small'  />
         </ActionButtons>
         </NoteFlexContainer>
       </NoteContainer>
