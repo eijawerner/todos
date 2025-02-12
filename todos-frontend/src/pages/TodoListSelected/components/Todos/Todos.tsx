@@ -5,7 +5,7 @@ import {
   Todo,
   TodoListsData,
 } from "../../../../common/types/Models";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { style } from "./Todos.style";
 import { TodoRow } from "./components/TodoRow/TodoRow";
 import { Button } from "../../../../common/components/Button/Button";
@@ -135,7 +135,7 @@ function TodosBase({ listName }: TodosProps) {
 
   const client = useApolloClient();
 
-  const refToLast = React.createRef<HTMLInputElement>();
+  const refToLast = React.useRef<HTMLInputElement | null>(null);
 
   const getSortedTodos = (todoList: Todo[]) => {
     const todosOrdered = [...todoList].sort((t1, t2) => {
@@ -153,6 +153,12 @@ function TodosBase({ listName }: TodosProps) {
     setTodos(getSortedTodos(todoList));
   }
 
+  const setFocusToItem = (refToItem: React.RefObject<HTMLInputElement>) => {
+    if (refToItem.current) {
+      refToItem.current.focus();
+    }
+  };
+
   useEffect(() => {
     const todoList: Todo[] =
       loadTodoData.data && loadTodoData.data.todoLists.length > 0
@@ -163,12 +169,6 @@ function TodosBase({ listName }: TodosProps) {
       sortAndSetTodos(todoList);
     }
   }, [listName, loadTodoData.data]);
-
-  useEffect(() => {
-    if (refToLast.current) {
-      refToLast.current.focus();
-    }
-  }, [todos?.length]);
 
   const reloadTodosList = () => {
     loadTodoData
@@ -205,12 +205,21 @@ function TodosBase({ listName }: TodosProps) {
 
   const handleEditTodo = (todo: Todo) => {   
     const editChange: ChangeRequest = { type: 'update', todo: todo, id: crypto.randomUUID()}
+    console.log('edit todo', todo.text);
 
     if (isOnline) {
-      console.log('handleEditTodo is ONLINE')
+      console.log('handleEditTodo is ONLINE');
+      const newTodos = todos.map(t => {
+        if (t.todoId === todo.todoId) {
+          return todo
+        } else {
+          return t;
+        }
+      })
+      setTodos(newTodos);
       editTodo({ variables: {...todo}})
       .then(() => {
-        reloadTodosList();
+        // success, do nothing
       })
       .catch((error) => {
         setErrorBanner('failed to edit task')
@@ -227,7 +236,7 @@ function TodosBase({ listName }: TodosProps) {
   // Sync with latest todo list every minute
   // useInterval(reloadTodosList, 60 * 1000);
 
-  const handleAddTask = (listName: string) => {
+  const handleAddTask = useCallback((listName: string) => {
     const uuid = crypto.randomUUID();
     // reload first to get latest list?
     const order = todos.length > 0 ? todos[todos.length - 1].order + 1.0 : 1.0;
@@ -242,6 +251,7 @@ function TodosBase({ listName }: TodosProps) {
     const addChange: ChangeRequest =  {type: 'add', todo: newTodoItem, id: crypto.randomUUID() };
     
     setTodos([...todos, newTodoItem]);
+    setFocusToItem(refToLast);
 
     if (isOnline) {
       addTodo({
@@ -253,7 +263,7 @@ function TodosBase({ listName }: TodosProps) {
           order: newTodoItem.order},
       })
       .then((result) => {
-        reloadTodosList();
+        // success, do nothing
       })
       // Alert user and decide if want to retry or skip change?
       .catch((error) => {
@@ -268,7 +278,7 @@ function TodosBase({ listName }: TodosProps) {
       console.log('add change', addChange);
       setChanges([...changes, addChange]);
     }
-  };
+  }, [todos, refToLast.current, isOnline]);
 
   const updateMultipleTodos = async (todos: Todo[]) => {
     const updateOrderPromises = todos.map((todo) => {
@@ -294,10 +304,10 @@ function TodosBase({ listName }: TodosProps) {
             })
             .then((result) => {
               console.log(`deleted todo with id=${id}`);
-              reloadTodosList();
             })
             .catch((error) => {
               console.log(error);
+              reloadTodosList();
               setErrorBanner('failed to delete task')
             });
       }).catch(e => console.log('failed to delete todo note belonging to todo to be deleted', e))
