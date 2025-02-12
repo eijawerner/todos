@@ -5,7 +5,7 @@ import {
   Todo,
   TodoListsData,
 } from "../../../../common/types/Models";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { style } from "./Todos.style";
 import { TodoRow } from "./components/TodoRow/TodoRow";
 import { Button } from "../../../../common/components/Button/Button";
@@ -14,6 +14,7 @@ import { queries } from "../../Queries";
 import { useInterval } from "../../../../common/hooks/Time";
 import { COLOR_BLUE_SKY } from "../../../../common/contants/colors";
 import { Note } from "./components/Note/Note";
+import { DebugContext } from "../../../../App";
 
 export type TodosProps = StyledProps & {
   listName: string;
@@ -53,6 +54,8 @@ function TodosBase({ listName }: TodosProps) {
   const [changes, setChanges] = useState<ChangeRequest[]>([]);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [noteIsVisible, setNoteIsVisible] = useState<string | null>(null);
+
+  const debugEnabled = useContext(DebugContext);
 
    // Online state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -290,6 +293,20 @@ function TodosBase({ listName }: TodosProps) {
     }
   };
 
+  const updateTodosOrder = async () => {
+    const updateOrderPromises = todos.map((todo, idx) => {
+      return editTodo({ variables: {...todo, order: idx}});
+    })
+    return await Promise.all(updateOrderPromises);
+  }
+
+
+  const handleReorder = () => {
+    updateTodosOrder()
+      .then(() => reloadTodosList())
+      .catch(e => console.error("Error updating todos:", e));
+  }
+
   const handleDeleteTodo = (id: string) => {
     // remove locally first
     setTodos(todos.filter(todo => todo.todoId !== id));
@@ -416,6 +433,14 @@ function TodosBase({ listName }: TodosProps) {
             onClick={() => reloadTodosList()}
             text={"sync"}
           />
+          {debugEnabled && (
+            <Button
+            appearance="secondary"
+            onClick={handleReorder}
+            text={"reorder"}
+          />
+          )}
+            
         </div>
       
     </>
