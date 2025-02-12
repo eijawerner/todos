@@ -5,7 +5,7 @@ import {
   Todo,
   TodoListsData,
 } from "../../../../common/types/Models";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { style } from "./Todos.style";
 import { TodoRow } from "./components/TodoRow/TodoRow";
 import { Button } from "../../../../common/components/Button/Button";
@@ -14,7 +14,6 @@ import { queries } from "../../Queries";
 import { useInterval } from "../../../../common/hooks/Time";
 import { COLOR_BLUE_SKY } from "../../../../common/contants/colors";
 import { Note } from "./components/Note/Note";
-import { DebugContext } from "../../../../App";
 
 export type TodosProps = StyledProps & {
   listName: string;
@@ -54,8 +53,6 @@ function TodosBase({ listName }: TodosProps) {
   const [changes, setChanges] = useState<ChangeRequest[]>([]);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [noteIsVisible, setNoteIsVisible] = useState<string | null>(null);
-
-  const debugEnabled = useContext(DebugContext);
 
    // Online state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -181,49 +178,29 @@ function TodosBase({ listName }: TodosProps) {
   };
   
   const handleCheckTodo = (todo: Todo, checked: boolean) => {
-    let order;
-    const todosWihoutCheckedTodo = todos.filter(t => t.todoId !== todo.todoId)
-    const idxFirstUncheckedItem = todosWihoutCheckedTodo.findIndex(t => !t.checked);
-    const idxLastCheckedItem = idxFirstUncheckedItem > 0 ? idxFirstUncheckedItem - 1 : -1;
+    const otherTodos = todos.filter(t => t.todoId !== todo.todoId);
 
-    if (todosWihoutCheckedTodo.length === 0) {
-      // only 1 element in the list
-      order = 1;
-    } else if (checked) {
-      // Move todo last of checked items
-
-      if (idxFirstUncheckedItem === -1) {
-        // no unchecked items, keep it where it is
-        order = todo.order;
-      } else if (idxFirstUncheckedItem >= 1) {
-          const orderBefore = todosWihoutCheckedTodo[idxLastCheckedItem].order;
-          const orderAfter = todosWihoutCheckedTodo[idxFirstUncheckedItem].order;
-          order = todo.order > orderBefore && todo.order < orderAfter ? todo.order : orderBefore + (orderAfter - orderBefore) / 2;
-      } else {
-        const orderAfter = todosWihoutCheckedTodo[idxFirstUncheckedItem].order;
-        order = todo.order < orderAfter ? todo.order : orderAfter / 2;
+    // Put todo last of checked todos, works both if it just got checked or unchecked
+    const checkedTodosAndCurrentChangedTodo = otherTodos.filter(t => t.checked).concat({
+      ...todo,
+      checked
+    });
+    const uncheckedTodos = otherTodos.filter(t => !t.checked);
+    const newTodos = checkedTodosAndCurrentChangedTodo.concat(uncheckedTodos).map((todo, idx) => {
+      return {
+        ...todo,
+        order: idx
       }
-      
-    } else {
-      // Move todo first of unchecked items
+    });
 
-      if (idxFirstUncheckedItem === -1) {
-         // no unchecked items, put it last in the list (if not already there)
-        const orderBefore = todosWihoutCheckedTodo[todosWihoutCheckedTodo.length - 1].order;
-        order = todo.order > orderBefore ? todo.order : Math.ceil(orderBefore + 1);
-      } else if (idxFirstUncheckedItem >= 1) {
-        const orderBefore = todosWihoutCheckedTodo[idxLastCheckedItem].order;
-        const orderAfter = todosWihoutCheckedTodo[idxFirstUncheckedItem].order;
-        order =  todo.order > orderBefore && todo.order < orderAfter ? todo.order : orderBefore + (orderAfter - orderBefore) / 2;
-      } else {
-        const orderAfter =  todosWihoutCheckedTodo[idxFirstUncheckedItem].order 
-        order = todo.order < orderAfter ? todo.order : orderAfter / 2;
-      }
-      
-    }
-    const updatedTodo = { todoId: todo.todoId, text: todo.text, checked: checked, order: order };
-    sortAndSetTodos([...todosWihoutCheckedTodo, updatedTodo]);
-    handleEditTodo(updatedTodo);
+    const oldTodos = [...todos];
+    setTodos(newTodos);
+    updateMultipleTodos(newTodos)
+      .then(() => reloadTodosList())
+      .catch(e => { 
+        setTodos(oldTodos)
+        console.error("Error updating todos:", e)
+      });
   }
 
   const handleEditTodo = (todo: Todo) => {   
@@ -293,18 +270,11 @@ function TodosBase({ listName }: TodosProps) {
     }
   };
 
-  const updateTodosOrder = async () => {
-    const updateOrderPromises = todos.map((todo, idx) => {
-      return editTodo({ variables: {...todo, order: idx}});
+  const updateMultipleTodos = async (todos: Todo[]) => {
+    const updateOrderPromises = todos.map((todo) => {
+      return editTodo({ variables: {...todo} });
     })
     return await Promise.all(updateOrderPromises);
-  }
-
-
-  const handleReorder = () => {
-    updateTodosOrder()
-      .then(() => reloadTodosList())
-      .catch(e => console.error("Error updating todos:", e));
   }
 
   const handleDeleteTodo = (id: string) => {
@@ -433,14 +403,6 @@ function TodosBase({ listName }: TodosProps) {
             onClick={() => reloadTodosList()}
             text={"sync"}
           />
-          {debugEnabled && (
-            <Button
-            appearance="secondary"
-            onClick={handleReorder}
-            text={"reorder"}
-          />
-          )}
-            
         </div>
       
     </>
