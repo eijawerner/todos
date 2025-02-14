@@ -6,7 +6,6 @@ import { StyledProps } from '../../types/Models';
 const StyledIconButton = styled.button`
     border-radius: 25%;
     border: none;
-    height: 100%;
     margin: 0;
     padding: 0;
     background: ${COLOR_BLUE_SKY};

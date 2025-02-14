@@ -1,8 +1,6 @@
 import { StyledProps, Todo } from "../../../../../../common/types/Models";
 import styled from "styled-components";
-import { style } from "./TodoRow.style";
 import React, { ChangeEvent, useContext, useState } from "react";
-import { Button } from "../../../../../../common/components/Button/Button";
 import { useMutation } from "@apollo/client";
 import { queries } from "../../../../Queries";
 import { StyledCheckboxInput } from "../../../../../../common/components/Checkbox";
@@ -31,6 +29,15 @@ const StyledDebugOrderText = styled.span`
   color: tomato;
 `;
 
+const StyledTodoRow = styled.div`
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start; 
+  gap: 0.5rem;
+`;
+
 export type TodoRowProps = StyledProps & {
   todo: Todo;
   deleteTodo: (id: string) => void;
@@ -41,7 +48,7 @@ export type TodoRowProps = StyledProps & {
   inputRef?: React.Ref<HTMLInputElement>
 };
 
-function TodoRowBase({ className, todo, deleteTodo, checkTodo, saveTodo, addNewItem, viewNote, inputRef }: TodoRowProps) {
+export const TodoRow = ({ todo, deleteTodo, checkTodo, saveTodo, addNewItem, viewNote, inputRef }: TodoRowProps) => {
   const [taskText, setTaskText] = useState(todo.text);
 
   const debugEnabled = useContext(DebugContext);
@@ -67,37 +74,31 @@ function TodoRowBase({ className, todo, deleteTodo, checkTodo, saveTodo, addNewI
   };
 
   return (
-    <li className={className} onBlur={handleSaveTask}>
-      <div>
-        <StyledCheckboxInput
-          type="checkbox"
-          id="task_done"
-          name={`task${todo.text}`}
-          checked={todo.checked}
-          value={todo.text}
-          onChange={handleClickCheckbox}
-        />
-        <StyledTextInput
-          type="text"
-          id={`task_text_${todo.text}`}
-          value={taskText}
-          onChange={handleTextInputChange}
-          onKeyUp={handleKeywordKeyPress}
-          ref={inputRef}
-          checked={todo.checked}
-        />
-        {debugEnabled && (<StyledDebugOrderText>{todo.order}</StyledDebugOrderText>)}
-        <IconButton onClick={() => viewNote(todo.todoId)}>
-          <PencilSquareIcon />
-        </IconButton>
-        <IconButton onClick={() => deleteTodo(todo.todoId)}>
-          <TrashIcon />
-        </IconButton>
-      </div>
-    </li>
+    <StyledTodoRow onBlur={handleSaveTask}>
+      <StyledCheckboxInput
+        type="checkbox"
+        id="task_done"
+        name={`task${todo.text}`}
+        checked={todo.checked}
+        value={todo.text}
+        onChange={handleClickCheckbox}
+      />
+      <StyledTextInput
+        type="text"
+        id={`task_text_${todo.text}`}
+        value={taskText}
+        onChange={handleTextInputChange}
+        onKeyUp={handleKeywordKeyPress}
+        ref={inputRef}
+        checked={todo.checked}
+      />
+      {debugEnabled && (<StyledDebugOrderText>{todo.order}</StyledDebugOrderText>)}
+      <IconButton onClick={() => viewNote(todo.todoId)}>
+        <PencilSquareIcon />
+      </IconButton>
+      <IconButton onClick={() => deleteTodo(todo.todoId)}>
+        <TrashIcon />
+      </IconButton>
+    </StyledTodoRow>
   );
 }
-
-export const TodoRow = styled(TodoRowBase)`
-  ${style}
-`;

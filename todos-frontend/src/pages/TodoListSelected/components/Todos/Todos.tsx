@@ -12,12 +12,28 @@ import { Button } from "../../../../common/components/Button/Button";
 import { FetchResult, useApolloClient, useMutation, useQuery } from "@apollo/client";
 import { queries } from "../../Queries";
 import { useInterval } from "../../../../common/hooks/Time";
-import { COLOR_BLUE_SKY } from "../../../../common/contants/colors";
+import { COLOR_BLUE_SKY, COLOR_GREY_LIGHT } from "../../../../common/contants/colors";
 import { Note } from "./components/Note/Note";
+import { SortableList } from "../SortableList/SortableList";
 
 export type TodosProps = StyledProps & {
   listName: string;
 };
+
+const StyledTodoRowWrapper = styled.div`
+  background: ${COLOR_GREY_LIGHT};
+  border-radius: 0.5rem;
+  margin: 0.5rem;
+  width: 100%;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start; 
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  margin: 0 0.75rem;
+`;
 
 const StyledTodoList = styled.ul`
   width: 100%;
@@ -135,7 +151,7 @@ function TodosBase({ listName }: TodosProps) {
 
   const client = useApolloClient();
 
-  const refToLast = React.useRef<HTMLInputElement | null>(null);
+  const todoRefs = React.useRef<Map<string, HTMLInputElement>>(new Map());
 
   const getSortedTodos = (todoList: Todo[]) => {
     const todosOrdered = [...todoList].sort((t1, t2) => {
@@ -153,9 +169,10 @@ function TodosBase({ listName }: TodosProps) {
     setTodos(getSortedTodos(todoList));
   }
 
-  const setFocusToItem = (refToItem: React.RefObject<HTMLInputElement>) => {
-    if (refToItem.current) {
-      refToItem.current.focus();
+  const setFocusToTodo = (todoId: string) => {
+    const ref = todoRefs.current.get(todoId);
+    if (ref) {
+      ref.focus();
     }
   };
 
@@ -262,8 +279,8 @@ function TodosBase({ listName }: TodosProps) {
           order: newTodoItem.order},
       })
       .then((result) => {
-        // success, do nothing
-        setFocusToItem(refToLast);
+        // success, set focus to the newly added todo
+        setFocusToTodo(newTodoItem.todoId);
       })
       // Alert user and decide if want to retry or skip change?
       .catch((error) => {
@@ -278,7 +295,7 @@ function TodosBase({ listName }: TodosProps) {
       console.log('add change', addChange);
       setChanges([...changes, addChange]);
     }
-  }, [todos, refToLast.current, isOnline]);
+  }, [todos, isOnline]);
 
   const updateMultipleTodos = async (todos: Todo[]) => {
     const updateOrderPromises = todos.map((todo) => {
@@ -387,34 +404,61 @@ function TodosBase({ listName }: TodosProps) {
       {loadTodoData.loading && <p>loading...</p>}
       {loadTodoData.error && <p>{`Error: ${loadTodoData.error.message}`}</p>}
       {errorBanner && <p style={{fontSize: '1.5rem', color: 'red'}}>{errorBanner}</p>}
-      {<StyledTodoList>
-          {todos.map((todo, idx) => (
-            <TodoRow
-              key={todo.todoId}
-              todo={todo}
-              deleteTodo={handleDeleteTodo}
-              checkTodo={handleCheckTodo}
-              saveTodo={handleEditTodo}
-              addNewItem={() => handleAddTask(listName)}
-              viewNote={viewNote}
-              inputRef={idx === todos.length - 1 ? refToLast: undefined}
-            />
-          ))}
-        </StyledTodoList>
-        }
-        <div style={{ display: 'flex', gap: '8px'}}>
-            <Button
-            appearance="primary"
-            onClick={() => handleAddTask(listName)}
-            text={"New task"}
-          />
+      <SortableList
+        items={todos.map( t => {return { ...t, id: t.todoId }})}
+        onChange={(items) => {
+          const newTodos = items.map((i, idx) => {
+            return {
+              ...i,
+              todoId: i.id,
+              order: idx
+            }
+          })
+          const oldTodos = [...todos];
+          setTodos(newTodos);
+          updateMultipleTodos(newTodos)
+            .then(() => reloadTodosList())
+            .catch(e => { 
+              setTodos(oldTodos)
+              console.error("Error updating todos:", e)
+            });
+        }}
+        renderItem={(item) => (
+          <SortableList.Item id={item.id}>
+            <StyledTodoRowWrapper>
+              <SortableList.DragHandle />
+              <TodoRow
+                key={item.id}
+                todo={item}
+                deleteTodo={handleDeleteTodo}
+                checkTodo={handleCheckTodo}
+                saveTodo={handleEditTodo}
+                addNewItem={() => handleAddTask(listName)}
+                viewNote={viewNote}
+                inputRef={(el) => {
+                  if (el) {
+                    todoRefs.current.set(item.todoId, el);
+                  } else {
+                    todoRefs.current.delete(item.todoId);
+                  }
+                }}
+              />
+            </StyledTodoRowWrapper>
+        </SortableList.Item>
+      )}
+      />
+      <div style={{ display: 'flex', gap: '1rem', padding: '1rem'}}>
           <Button
-            appearance="secondary"
-            onClick={() => reloadTodosList()}
-            text={"sync"}
-          />
-        </div>
-      
+          appearance="primary"
+          onClick={() => handleAddTask(listName)}
+          text={"New task"}
+        />
+        <Button
+          appearance="secondary"
+          onClick={() => reloadTodosList()}
+          text={"sync"}
+        />
+      </div>
     </>
   );
 }
