@@ -1,5 +1,6 @@
 CURRENT:
 - fix warnings and deprecations (see console)
+- make sure to use hooks when using apollo client (remove usages of client.)
 - leftovers of notes:
 -- add to offline edits
 

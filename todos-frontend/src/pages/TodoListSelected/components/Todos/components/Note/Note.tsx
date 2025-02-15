@@ -1,8 +1,10 @@
-import React from 'react';
-import { TodoNote } from '../../../../../../common/types/Models';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Todo, TodoNote } from '../../../../../../common/types/Models';
 import { Button } from '../../../../../../common/components/Button/Button';
 import styled from 'styled-components';
 import { COLOR_BLACK, COLOR_DARK_BLUE, COLOR_GREY_LIGHT } from '../../../../../../common/contants/colors';
+import { queries } from '../../../../Queries';
+import { useQuery } from '@apollo/client/react/hooks/useQuery';
 
 const StyledTextArea = styled.textarea`
   flex-grow: 1;
@@ -66,21 +68,27 @@ const Backdrop = styled.div`
 `;
 
 type NoteProps = {
-    note?: TodoNote;
-    editNoteText: (noteText: string) => void;
+    todoId: string;
+    note: TodoNote;
+    editNoteText: (todoId: string, noteText: string) => void;
     onClose: () => void;
 };
-export const Note = ({note, editNoteText, onClose}: NoteProps) => {
-    const [noteText, setNoteText] = React.useState(note?.text ?? '');
+export const Note = ({todoId, note, editNoteText, onClose}: NoteProps) => {
+    const [noteText, setNoteText] = useState<string>(note.text);
 
     const updateNoteText = (noteText: string) => {
         setNoteText(noteText);
     }
 
-    const saveAndClose = () => {
-      editNoteText(noteText);
+    const saveAndClose = useCallback(() => {
+      if (noteText === note.text) {
+        // no changes just return
+        onClose();
+        return;
+      }
+      editNoteText(todoId, noteText);
       onClose();
-    }
+    }, [noteText, todoId]);
 
     return (
       <>
@@ -88,7 +96,8 @@ export const Note = ({note, editNoteText, onClose}: NoteProps) => {
       <NoteContainer>
         <NoteFlexContainer>
         <NotesHeader>Notes</NotesHeader>
-        <StyledTextArea value={noteText} onChange={(e) => updateNoteText(e.target.value)} />
+        {noteText === undefined && (<span>undefined data</span>)}
+        <StyledTextArea autoFocus value={noteText} onChange={(e) => updateNoteText(e.target.value)} />
         <ActionButtons>
           <Button onClick={saveAndClose} text='Close' size='small'  />
         </ActionButtons>

@@ -91,6 +91,7 @@ export const TodoRow = ({ todo, deleteTodo, checkTodo, saveTodo, addNewItem, vie
         onKeyUp={handleKeywordKeyPress}
         ref={inputRef}
         checked={todo.checked}
+        autoComplete="false"
       />
       {debugEnabled && (<StyledDebugOrderText>{todo.order}</StyledDebugOrderText>)}
       <IconButton onClick={() => viewNote(todo.todoId)}>

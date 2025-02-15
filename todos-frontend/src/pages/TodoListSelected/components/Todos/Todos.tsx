@@ -4,6 +4,7 @@ import {
   StyledProps,
   Todo,
   TodoListsData,
+  TodoNote,
 } from "../../../../common/types/Models";
 import React, { useCallback, useEffect, useState } from "react";
 import { style } from "./Todos.style";
@@ -63,12 +64,14 @@ function TodosBase({ listName }: TodosProps) {
   // Mutations
   const [addTodo, addTodoData] = useMutation(queries.CREATE_TODO);
   const [editTodo, editTodoData] = useMutation(queries.UPDATE_TODO);
+  const [addTodoNote] = useMutation(queries.CREATE_TODO_NOTE);
+  const [updateTodoNote] = useMutation(queries.UPDATE_TODO_NOTE);
 
   // State
   const [todos, setTodos] = useState<Todo[]>([]);
   const [changes, setChanges] = useState<ChangeRequest[]>([]);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
-  const [noteIsVisible, setNoteIsVisible] = useState<string | null>(null);
+  const [noteIsVisible, setNoteIsVisible] = useState<{todoId: string, note: TodoNote} | null>(null);
 
    // Online state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -337,18 +340,27 @@ function TodosBase({ listName }: TodosProps) {
 
   const handleAddNote = (todoId: string) => {
     const note = {
-      text: 'test',
+      text: '',
       links: [],
     }
-    client
-      .mutate({
-        mutation: queries.CREATE_TODO_NOTE,
-        variables: { todoId, noteText: note.text },
-      })
-      .then((result) => {
+    return addTodoNote({ 
+      variables: { todoId, noteText: note.text },
+      // Make sure not keeping the cached version that doesn't have a note after adding it
+      refetchQueries: [{ query: queries.GET_TODO_NOTE, variables: { todoId } },
+        { query: queries.GET_TODOS_IN_TODOLIST_WITH_NAME, variables: { listName: listName } }
+      ], 
+    })
+    .then((result) => {
         console.log(`added note to todo with id=${todoId}`);
-        reloadTodosList();
-        setNoteIsVisible(todoId);
+        
+        // Update local state immediately
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo.todoId === todoId
+              ? { ...todo, note: { text: note.text, links: note.links } }
+              : todo
+          )
+        );
       })
       .catch((error) => {
         console.log(error);
@@ -357,41 +369,59 @@ function TodosBase({ listName }: TodosProps) {
       });
   }
 
-  const viewNote = (todoId: string) => {
-    // fetch note for todo id, check if exists otherwise create it
-    setNoteIsVisible(todoId);
-    client.query({
-      query: queries.GET_TODO_NOTE,
-      variables: { todoId: todoId },
-    }).then((result) => {
-      console.log('result', result);
-      if (result.data.todos.length === 0) {
-        console.error('no todo with that id found', todoId);
-        return;
-      }
-      if (!result.data.todos[0].note) {
-        console.error('no note found, creating...', todoId);
-        handleAddNote(todoId);
-        return;
-      }
-      console.log('note', result.data.todos[0].note.text);
-    }).catch((error) => {
-      console.log('error', error);
-    });
-  }
+  const viewNote = async (todoId: string) => {
+    try {
+      const { data } = await client.query({
+        query: queries.GET_TODO_NOTE,
+        variables: { todoId },
+        fetchPolicy: "network-only", // Ensures fresh data
+      });
+  
+      let existingNote = data?.todos?.[0]?.note;
+  
+      if (!existingNote) {
+        console.log("No note found, creating one...");
+        await handleAddNote(todoId);
 
-  const editNoteText = (noteText: string) => {
-    console.log('edit note', noteText);
-    const todoIdOfNodeToEdit = noteIsVisible;
-    setNoteIsVisible(null);
-    client.mutate({
-      mutation: queries.UPDATE_TODO_NOTE,
-      variables: { todoId: todoIdOfNodeToEdit, noteText: noteText },
-    }).then((result) => {
-      console.log('note updated', result);     
-      reloadTodosList();
+        const { data: newlyCreatedTodoNoteData } = await client.query({
+          query: queries.GET_TODO_NOTE,
+          variables: { todoId },
+          fetchPolicy: "network-only", // Ensures fresh data
+        });
+  
+        existingNote = newlyCreatedTodoNoteData?.todos?.[0]?.note;
+      }
+
+      if (!existingNote) {
+        console.error("Still no note found, that is odd since it was just created...");
+        setErrorBanner('Failed to show note');
+        return;
+      }
+  
+      setNoteIsVisible({ todoId: todoId, note: existingNote}); 
+    } catch (error) {
+      console.log("Error fetching note:", error);
+    }
+  };
+  
+
+  const editNoteText = (todoId: string, noteText: string) => {
+    updateTodoNote({ 
+      variables: { todoId: todoId, noteText: noteText },
+      refetchQueries: [{ query: queries.GET_TODO_NOTE, variables: { todoId: todoId } }, 
+        { query: queries.GET_TODOS_IN_TODOLIST_WITH_NAME, variables: { listName: listName } }
+      ],
+    })
+    .then((result) => {
+      // Update local state immediately
+      setTodos((prevTodos) =>
+        prevTodos.map((todo) =>
+          todo.todoId === todoId ? { ...todo, note: { text: noteText, links: [] } } : todo
+        )
+      );
     }).catch((error) => {
       console.log('error', error);
+      reloadTodosList();
       setErrorBanner('failed to edit note')
       setTimeout(() => setErrorBanner(null), 3000);
     });
@@ -399,8 +429,14 @@ function TodosBase({ listName }: TodosProps) {
 
   return (
     <>
-      {noteIsVisible && <Note note={todos.find(t => t.todoId === noteIsVisible)?.note} editNoteText={editNoteText} onClose={() => setNoteIsVisible(null)} />
-      }
+      {noteIsVisible !== null && (
+        <Note 
+          todoId={noteIsVisible.todoId} 
+          note={noteIsVisible.note} 
+          editNoteText={editNoteText} 
+          onClose={() => setNoteIsVisible(null)} 
+        />
+      )}
       {loadTodoData.loading && <p>loading...</p>}
       {loadTodoData.error && <p>{`Error: ${loadTodoData.error.message}`}</p>}
       {errorBanner && <p style={{fontSize: '1.5rem', color: 'red'}}>{errorBanner}</p>}
