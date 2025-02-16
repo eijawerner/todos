@@ -4,11 +4,11 @@ import styled from "styled-components";
 import { XMarkIcon } from "@heroicons/react/20/solid";
 
 type StyledOverlayProps = {
-  isVisible: boolean;
-};
-const StyledOverlay = styled.div<StyledOverlayProps>`
-  opacity: ${(props) => (props.isVisible ? 1 : 0)};
-  pointer-events: ${(props) => (props.isVisible ? "auto" : "none")};
+  $isVisible: boolean;
+ };
+ const StyledOverlay = styled.div<StyledOverlayProps>`
+  opacity: ${(props) => (props.$isVisible ? 1 : 0)};
+  pointer-events: ${(props) => (props.$isVisible ? "auto" : "none")};
   background: white;
   padding: 2rem;
   display: flex;
@@ -65,7 +65,7 @@ export function TodoListDeleteConfirmDialog({
   cancel,
 }: TodoListDeleteConfirmDialogProps) {
   return (
-    <StyledOverlay isVisible={isVisible}>
+    <StyledOverlay $isVisible={isVisible}>
       <StyledCloseButtonContainer>
         <StyledCloseButton onClick={cancel}>
           <StyledXMarkIcon />

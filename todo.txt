@@ -1,5 +1,5 @@
 CURRENT:
-- fix warnings and deprecations (see console)
+- add prettier to auto format files
 - make sure to use hooks when using apollo client (remove usages of client.)
 - leftovers of notes:
 -- add to offline edits
@@ -12,7 +12,6 @@ style:
 - custom style checkboxes
 
 DX:
-- add prettier to auto format files
 - Add e2e tests!
 - add alias to shared stuff
 - move to tailwind?

@@ -4,11 +4,11 @@ import styled from "styled-components";
 import { XMarkIcon } from "@heroicons/react/20/solid";
 
 type StyledOverlayProps = {
-  isVisible: boolean;
+ $isVisible: boolean;
 };
 const StyledOverlay = styled.div<StyledOverlayProps>`
-  opacity: ${(props) => (props.isVisible ? 1 : 0)};
-  pointer-events: ${(props) => (props.isVisible ? "auto" : "none")};
+  opacity: ${(props) => (props.$isVisible ? 1 : 0)};
+  pointer-events: ${(props) => (props.$isVisible ? "auto" : "none")};
   background: white;
   padding: 1rem;
   display: flex;
@@ -75,7 +75,7 @@ export function TodoListCreateForm({
     setListName(name);
   };
   return (
-    <StyledOverlay isVisible={isVisible}>
+    <StyledOverlay $isVisible={isVisible}>
       <StyledCloseButtonContainer>
         <StyledCloseButton onClick={onCloseOverlayClick}>
           <StyledXMarkIcon />
