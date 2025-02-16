@@ -26,9 +26,11 @@ export const App: React.FC = () => {
 
   return (
     <DebugContext.Provider value={debugEnabled}>
-      <DebugButton onDoubleClick={() => setDebugEnabled(!debugEnabled)}>{`${debugEnabled ? '1': '0'}`}</DebugButton>
+      <DebugButton
+        onDoubleClick={() => setDebugEnabled(!debugEnabled)}
+      >{`${debugEnabled ? "1" : "0"}`}</DebugButton>
       <GlobalStyles />
       <TodoListSelected />
     </DebugContext.Provider>
-  )
+  );
 };

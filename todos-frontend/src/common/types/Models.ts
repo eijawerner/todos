@@ -28,10 +28,10 @@ export interface TodoListsData {
 
 export type LocalTodo = Todo & {
   saved: boolean;
-}
+};
 
 export type ChangeRequest = {
-  type: 'add' | 'delete' | 'update';
+  type: "add" | "delete" | "update";
   todo: Todo;
   id: string;
-}
+};

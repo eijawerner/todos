@@ -4,7 +4,7 @@ import styled from "styled-components";
 import { XMarkIcon } from "@heroicons/react/20/solid";
 
 type StyledOverlayProps = {
- $isVisible: boolean;
+  $isVisible: boolean;
 };
 const StyledOverlay = styled.div<StyledOverlayProps>`
   opacity: ${(props) => (props.$isVisible ? 1 : 0)};
@@ -80,25 +80,23 @@ export function TodoListCreateForm({
         <StyledCloseButton onClick={onCloseOverlayClick}>
           <StyledXMarkIcon />
         </StyledCloseButton>
-      </StyledCloseButtonContainer> {
-        isVisible && (
-          <StyledForm onSubmit={handleSubmit} autoComplete="off">
-            <label htmlFor="formName">List name:</label>
-            <input
-              id={"formName"}
-              value={listName}
-              onChange={handleInputChange}
-              placeholder={"My todo list"}
-              style={{fontSize: '1.6rem'}}
-              autoFocus={true}
-            />
-            <StyledButtonsContainer>
-              <Button text={"Add list"} type="submit" appearance={"primary"} />
-            </StyledButtonsContainer>
-          </StyledForm>
-        )
-      }
-      
+      </StyledCloseButtonContainer>{" "}
+      {isVisible && (
+        <StyledForm onSubmit={handleSubmit} autoComplete="off">
+          <label htmlFor="formName">List name:</label>
+          <input
+            id={"formName"}
+            value={listName}
+            onChange={handleInputChange}
+            placeholder={"My todo list"}
+            style={{ fontSize: "1.6rem" }}
+            autoFocus={true}
+          />
+          <StyledButtonsContainer>
+            <Button text={"Add list"} type="submit" appearance={"primary"} />
+          </StyledButtonsContainer>
+        </StyledForm>
+      )}
     </StyledOverlay>
   );
 }

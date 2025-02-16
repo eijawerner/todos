@@ -1,12 +1,10 @@
-import React, { ChangeEvent, FormEvent, useState } from "react";
+import React from "react";
 import { Button } from "../../../../common/components/Button/Button";
 import styled from "styled-components";
 import { XMarkIcon } from "@heroicons/react/20/solid";
 
-type StyledOverlayProps = {
-  $isVisible: boolean;
- };
- const StyledOverlay = styled.div<StyledOverlayProps>`
+type StyledOverlayProps = { $isVisible: boolean };
+const StyledOverlay = styled.div<StyledOverlayProps>`
   opacity: ${(props) => (props.$isVisible ? 1 : 0)};
   pointer-events: ${(props) => (props.$isVisible ? "auto" : "none")};
   background: white;

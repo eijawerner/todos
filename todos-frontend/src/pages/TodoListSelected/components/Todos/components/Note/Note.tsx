@@ -1,10 +1,14 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Todo, TodoNote } from '../../../../../../common/types/Models';
-import { Button } from '../../../../../../common/components/Button/Button';
-import styled from 'styled-components';
-import { COLOR_BLACK, COLOR_DARK_BLUE, COLOR_GREY_LIGHT } from '../../../../../../common/contants/colors';
-import { queries } from '../../../../Queries';
-import { useQuery } from '@apollo/client/react/hooks/useQuery';
+import React, { useCallback, useEffect, useState } from "react";
+import { Todo, TodoNote } from "../../../../../../common/types/Models";
+import { Button } from "../../../../../../common/components/Button/Button";
+import styled from "styled-components";
+import {
+  COLOR_BLACK,
+  COLOR_DARK_BLUE,
+  COLOR_GREY_LIGHT,
+} from "../../../../../../common/contants/colors";
+import { queries } from "../../../../Queries";
+import { useQuery } from "@apollo/client/react/hooks/useQuery";
 
 const StyledTextArea = styled.textarea`
   flex-grow: 1;
@@ -68,41 +72,45 @@ const Backdrop = styled.div`
 `;
 
 type NoteProps = {
-    todoId: string;
-    note: TodoNote;
-    editNoteText: (todoId: string, noteText: string) => void;
-    onClose: () => void;
+  todoId: string;
+  note: TodoNote;
+  editNoteText: (todoId: string, noteText: string) => void;
+  onClose: () => void;
 };
-export const Note = ({todoId, note, editNoteText, onClose}: NoteProps) => {
-    const [noteText, setNoteText] = useState<string>(note.text);
+export const Note = ({ todoId, note, editNoteText, onClose }: NoteProps) => {
+  const [noteText, setNoteText] = useState<string>(note.text);
 
-    const updateNoteText = (noteText: string) => {
-        setNoteText(noteText);
-    }
+  const updateNoteText = (noteText: string) => {
+    setNoteText(noteText);
+  };
 
-    const saveAndClose = useCallback(() => {
-      if (noteText === note.text) {
-        // no changes just return
-        onClose();
-        return;
-      }
-      editNoteText(todoId, noteText);
+  const saveAndClose = useCallback(() => {
+    if (noteText === note.text) {
+      // no changes just return
       onClose();
-    }, [noteText, todoId]);
+      return;
+    }
+    editNoteText(todoId, noteText);
+    onClose();
+  }, [noteText, todoId]);
 
-    return (
-      <>
+  return (
+    <>
       <Backdrop onClick={saveAndClose} />
       <NoteContainer>
         <NoteFlexContainer>
-        <NotesHeader>Notes</NotesHeader>
-        {noteText === undefined && (<span>undefined data</span>)}
-        <StyledTextArea autoFocus value={noteText} onChange={(e) => updateNoteText(e.target.value)} />
-        <ActionButtons>
-          <Button onClick={saveAndClose} text='Close' size='small'  />
-        </ActionButtons>
+          <NotesHeader>Notes</NotesHeader>
+          {noteText === undefined && <span>undefined data</span>}
+          <StyledTextArea
+            autoFocus
+            value={noteText}
+            onChange={(e) => updateNoteText(e.target.value)}
+          />
+          <ActionButtons>
+            <Button onClick={saveAndClose} text="Close" size="small" />
+          </ActionButtons>
         </NoteFlexContainer>
       </NoteContainer>
-      </>
-    )
+    </>
+  );
 };

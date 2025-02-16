@@ -9,7 +9,7 @@ import { PencilSquareIcon, TrashIcon } from "@heroicons/react/20/solid";
 import { IconButton } from "../../../../../../common/components/IconButton/IconButton";
 import { DebugContext } from "../../../../../../App";
 
-const StyledTextInput = styled.input<{checked: boolean}>`
+const StyledTextInput = styled.input<{ checked: boolean }>`
   flex-grow: 1;
   border: none;
   background-color: transparent;
@@ -21,7 +21,7 @@ const StyledTextInput = styled.input<{checked: boolean}>`
     outline: none;
     background: white;
   }
-  text-decoration: ${props => props.checked ? 'line-through;': undefined}
+  text-decoration: ${(props) => (props.checked ? "line-through;" : undefined)};
 `;
 
 const StyledDebugOrderText = styled.span`
@@ -34,7 +34,7 @@ const StyledTodoRow = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: flex-start; 
+  justify-content: flex-start;
   gap: 0.5rem;
 `;
 
@@ -45,10 +45,18 @@ export type TodoRowProps = StyledProps & {
   saveTodo: (todo: Todo) => void;
   addNewItem: () => void;
   viewNote: (id: string) => void;
-  inputRef?: React.Ref<HTMLInputElement>
+  inputRef?: React.Ref<HTMLInputElement>;
 };
 
-export const TodoRow = ({ todo, deleteTodo, checkTodo, saveTodo, addNewItem, viewNote, inputRef }: TodoRowProps) => {
+export const TodoRow = ({
+  todo,
+  deleteTodo,
+  checkTodo,
+  saveTodo,
+  addNewItem,
+  viewNote,
+  inputRef,
+}: TodoRowProps) => {
   const [taskText, setTaskText] = useState(todo.text);
 
   const debugEnabled = useContext(DebugContext);
@@ -63,13 +71,18 @@ export const TodoRow = ({ todo, deleteTodo, checkTodo, saveTodo, addNewItem, vie
   };
 
   const handleSaveTask = () => {
-    const newTodo = { todoId: todo.todoId, text: taskText, checked: todo.checked, order: todo.order };
+    const newTodo = {
+      todoId: todo.todoId,
+      text: taskText,
+      checked: todo.checked,
+      order: todo.order,
+    };
     saveTodo(newTodo);
-  }
+  };
 
   const handleKeywordKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if( e.key == 'Enter' ){
-      addNewItem()
+    if (e.key == "Enter") {
+      addNewItem();
     }
   };
 
@@ -93,7 +106,9 @@ export const TodoRow = ({ todo, deleteTodo, checkTodo, saveTodo, addNewItem, vie
         checked={todo.checked}
         autoComplete="false"
       />
-      {debugEnabled && (<StyledDebugOrderText>{todo.order}</StyledDebugOrderText>)}
+      {debugEnabled && (
+        <StyledDebugOrderText>{todo.order}</StyledDebugOrderText>
+      )}
       <IconButton onClick={() => viewNote(todo.todoId)}>
         <PencilSquareIcon />
       </IconButton>
@@ -102,4 +117,4 @@ export const TodoRow = ({ todo, deleteTodo, checkTodo, saveTodo, addNewItem, vie
       </IconButton>
     </StyledTodoRow>
   );
-}
+};

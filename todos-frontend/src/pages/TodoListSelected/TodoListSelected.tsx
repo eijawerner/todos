@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useQuery, useMutation, useApolloClient } from "@apollo/client";
-import { StyledProps, TodoList, TodoListsData } from "../../common/types/Models";
+import {
+  StyledProps,
+  TodoList,
+  TodoListsData,
+} from "../../common/types/Models";
 import styled from "styled-components";
 import { style } from "./TodoListSelected.style";
 import {
@@ -26,13 +30,13 @@ const StyledSelectListWrapper = styled.div`
 const sortByListName = (l1: TodoList, l2: TodoList) => {
   const listName1 = l1.name.toLocaleLowerCase();
   const listName2 = l2.name.toLocaleLowerCase();
-  if (listName1 < listName2 ) {
+  if (listName1 < listName2) {
     return -1;
   } else if (listName1 > listName2) {
     return 1;
   }
   return 0;
-}
+};
 
 const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
   const todoListsLoad = useQuery<TodoListsData>(queries.GET_TODO_LISTS);
@@ -46,22 +50,22 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
   const handleDeleteButtonClick = () => setConfirmDeleteDialogVisible(true);
 
   // Online state
-const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-useEffect(() => {
+  useEffect(() => {
     // Update network status
     const handleStatusChange = () => {
       setIsOnline(navigator.onLine);
     };
 
-    window.addEventListener('online', handleStatusChange);
-    window.addEventListener('offline', handleStatusChange);
+    window.addEventListener("online", handleStatusChange);
+    window.addEventListener("offline", handleStatusChange);
 
     return () => {
-      window.removeEventListener('online', handleStatusChange);
-      window.removeEventListener('offline', handleStatusChange);
+      window.removeEventListener("online", handleStatusChange);
+      window.removeEventListener("offline", handleStatusChange);
     };
-}, [isOnline]);
+  }, [isOnline]);
 
   const todoLists = todoListsLoad.data ? todoListsLoad.data.todoLists : [];
 
@@ -99,27 +103,29 @@ useEffect(() => {
 
   const handleDeleteList = () => {
     if (client) {
-        client.mutate({
-            mutation: queries.DELETE_TODOS_IN_TODOLIST,
-            variables: { todoListName: selectedList },
-        }).then(() => {
-            client
-                .mutate({
-                    mutation: queries.DELETE_TODOLIST,
-                    variables: { todoListName: selectedList },
-                })
-                .then(() => {
-                    console.log("deleted list");
-                    setConfirmDeleteDialogVisible(false);
-                    setSelectedList(NONE_SELECTED);
-                    todoListsLoad
-                        .refetch()
-                        .then((r) => console.log("reloaded todo lists"))
-                        .catch(console.log);
-                })
-                .catch((e) => console.error('failed to delete todos', e));
-        }).catch((e) => console.error('failed to delete todo list', e));
-
+      client
+        .mutate({
+          mutation: queries.DELETE_TODOS_IN_TODOLIST,
+          variables: { todoListName: selectedList },
+        })
+        .then(() => {
+          client
+            .mutate({
+              mutation: queries.DELETE_TODOLIST,
+              variables: { todoListName: selectedList },
+            })
+            .then(() => {
+              console.log("deleted list");
+              setConfirmDeleteDialogVisible(false);
+              setSelectedList(NONE_SELECTED);
+              todoListsLoad
+                .refetch()
+                .then((r) => console.log("reloaded todo lists"))
+                .catch(console.log);
+            })
+            .catch((e) => console.error("failed to delete todos", e));
+        })
+        .catch((e) => console.error("failed to delete todo list", e));
     }
   };
 
@@ -130,18 +136,20 @@ useEffect(() => {
         onCreateTodoList={handleCreateTodoList}
         onCloseOverlayClick={handleCloseOverlayClick}
       />
-      
-      {!isOnline && <div style={{ color: 'red', paddingTop: '8px'}}>Disconnected</div>}
+
+      {!isOnline && (
+        <div style={{ color: "red", paddingTop: "8px" }}>Disconnected</div>
+      )}
 
       <StyledSelectListWrapper>
-      <div style={{ marginRight: '2rem'}}>
-        <Button
+        <div style={{ marginRight: "2rem" }}>
+          <Button
             appearance="secondary"
             onClick={handleOpenNewListForm}
             text={"New list"}
             size={"small"}
           />
-      </div>
+        </div>
         <TodoListSelector
           selected={selectedList}
           todoLists={[...todoLists].sort(sortByListName)}
@@ -162,9 +170,7 @@ useEffect(() => {
         cancel={() => setConfirmDeleteDialogVisible(false)}
       />
 
-      {selectedList !== NONE_SELECTED && (
-        <Todos listName={selectedList} />
-      )}
+      {selectedList !== NONE_SELECTED && <Todos listName={selectedList} />}
     </div>
   );
 };

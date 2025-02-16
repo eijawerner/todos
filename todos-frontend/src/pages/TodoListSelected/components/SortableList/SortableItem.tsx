@@ -2,7 +2,7 @@ import React, { createContext, useContext, useMemo } from "react";
 import type { CSSProperties, PropsWithChildren } from "react";
 import type {
   DraggableSyntheticListeners,
-  UniqueIdentifier
+  UniqueIdentifier,
 } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -10,7 +10,10 @@ import { CSS } from "@dnd-kit/utilities";
 import { XMarkIcon } from "@heroicons/react/20/solid";
 
 import styled from "styled-components";
-import { COLOR_DARK_BLUE, COLOR_GREY_LIGHT } from "../../../../common/contants/colors";
+import {
+  COLOR_DARK_BLUE,
+  COLOR_GREY_LIGHT,
+} from "../../../../common/contants/colors";
 
 interface Props {
   id: UniqueIdentifier;
@@ -25,12 +28,12 @@ interface Context {
 const SortableItemContext = createContext<Context>({
   attributes: {},
   listeners: undefined,
-  ref() {}
+  ref() {},
 });
 
 const StyledDragHandleButton = styled.button`
   border-radius: 5px;
-  border: none; 
+  border: none;
   margin: 0;
   padding: 0;
   cursor: pointer;
@@ -44,20 +47,20 @@ const StyledDragHandleButton = styled.button`
     background-color: rgba(0, 0, 0, 0.05);
   }
 
- &:focus-visible {
+  &:focus-visible {
     box-shadow: 0 0px 0px 2px #4c9ffe;
-  } 
+  }
 `;
 
 const StyledSortableItem = styled.li`
   background: ${COLOR_GREY_LIGHT};
   border-radius: 0.5rem;
-      
+
   display: flex;
   justify-content: space-between;
   flex-grow: 1;
   align-items: center;
- 
+
   box-sizing: border-box;
   list-style: none;
   color: #333;
@@ -82,20 +85,20 @@ export function SortableItem({ children, id }: PropsWithChildren<Props>) {
     setNodeRef,
     setActivatorNodeRef,
     transform,
-    transition
+    transition,
   } = useSortable({ id });
   const context = useMemo(
     () => ({
       attributes,
       listeners,
-      ref: setActivatorNodeRef
+      ref: setActivatorNodeRef,
     }),
-    [attributes, listeners, setActivatorNodeRef]
+    [attributes, listeners, setActivatorNodeRef],
   );
   const style: CSSProperties = {
     opacity: isDragging ? 0.4 : undefined,
     transform: CSS.Translate.toString(transform),
-    transition
+    transition,
   };
 
   return (

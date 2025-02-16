@@ -16,7 +16,7 @@ const GET_TODOS_IN_TODOLIST_WITH_NAME = gql`
         text
         checked
         todoId
-        order,
+        order
         note {
           text
         }
@@ -51,10 +51,28 @@ const DELETE_TODOLIST = gql`
 `;
 
 const CREATE_TODO = gql`
-  mutation ($listName: String!, $task: String!, $todoId: String!, $order: Float!) {
+  mutation (
+    $listName: String!
+    $task: String!
+    $todoId: String!
+    $order: Float!
+  ) {
     updateTodoLists(
       where: { name: $listName }
-      update: { todos: { create: [{ node: { text: $task, checked: false, todoId: $todoId, order: $order } }] } }
+      update: {
+        todos: {
+          create: [
+            {
+              node: {
+                text: $task
+                checked: false
+                todoId: $todoId
+                order: $order
+              }
+            }
+          ]
+        }
+      }
     ) {
       todoLists {
         name
@@ -89,15 +107,20 @@ const DELETE_TODOS = gql`
 
 const DELETE_TODOS_IN_TODOLIST = gql`
   mutation ($todoListName: String!) {
-   deleteTodos(where: { list: { name: $todoListName } }) {
-    nodesDeleted
-    relationshipsDeleted
-   }
- }
+    deleteTodos(where: { list: { name: $todoListName } }) {
+      nodesDeleted
+      relationshipsDeleted
+    }
+  }
 `;
 
 const UPDATE_TODO = gql`
-  mutation ($todoId: String!, $text: String!, $checked: Boolean, $order: Float!) {
+  mutation (
+    $todoId: String!
+    $text: String!
+    $checked: Boolean
+    $order: Float!
+  ) {
     updateTodos(
       where: { todoId: $todoId }
       update: { text: $text, checked: $checked, order: $order }
@@ -115,9 +138,9 @@ const CREATE_TODO_NOTE = gql`
     updateTodos(
       where: { todoId: $todoId }
       update: { note: { create: { node: { text: $noteText, links: [] } } } }
-      ) {
+    ) {
       todos {
-        todoId,
+        todoId
         note {
           text
         }
@@ -139,9 +162,9 @@ const GET_TODO_NOTE = gql`
 const UPDATE_TODO_NOTE = gql`
   mutation ($todoId: String!, $noteText: String!) {
     updateTodos(
-    where: { todoId: $todoId }
-    update: { note: { update: { node: { text: $noteText, links: [] } } } }
-  ) {
+      where: { todoId: $todoId }
+      update: { note: { update: { node: { text: $noteText, links: [] } } } }
+    ) {
       todos {
         note {
           text
@@ -153,13 +176,7 @@ const UPDATE_TODO_NOTE = gql`
 
 const DELETE_TODO_NOTE_BELONGING_TO_TODO = gql`
   mutation ($todoId: String!) {
-    deleteTodoNotes(
-      where: {
-        todo: {
-          todoId: $todoId
-        }
-      }
-    ) {
+    deleteTodoNotes(where: { todo: { todoId: $todoId } }) {
       nodesDeleted
       relationshipsDeleted
     }
@@ -179,5 +196,5 @@ export const queries = {
   CREATE_TODO_NOTE,
   GET_TODO_NOTE,
   UPDATE_TODO_NOTE,
-  DELETE_TODO_NOTE_BELONGING_TO_TODO
+  DELETE_TODO_NOTE_BELONGING_TO_TODO,
 };

@@ -6,13 +6,13 @@ import {
   PointerSensor,
   TouchSensor,
   useSensor,
-  useSensors
+  useSensors,
 } from "@dnd-kit/core";
 import type { Active, UniqueIdentifier } from "@dnd-kit/core";
 import {
   SortableContext,
   arrayMove,
-  sortableKeyboardCoordinates
+  sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { SortableOverlay } from "./SortableOverlay";
 import { DragHandle, SortableItem } from "./SortableItem";
@@ -41,17 +41,17 @@ const StyledSortableList = styled.ul`
 export function SortableList<T extends BaseItem>({
   items,
   onChange,
-  renderItem
+  renderItem,
 }: Props<T>) {
   const [active, setActive] = useState<Active | null>(null);
   const activeItem = useMemo(
     () => items.find((item) => item.id === active?.id),
-    [active, items]
+    [active, items],
   );
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates
+      coordinateGetter: sortableKeyboardCoordinates,
     }),
     useSensor(TouchSensor, {
       // Press delay of 250ms, with tolerance of 5px of movement
