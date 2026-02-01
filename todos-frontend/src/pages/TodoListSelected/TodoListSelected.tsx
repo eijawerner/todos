@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useQuery, useMutation, useApolloClient } from "@apollo/client";
+import { useQuery, useMutation, useApolloClient } from "@apollo/client/react";
 import {
   StyledProps,
   TodoList,

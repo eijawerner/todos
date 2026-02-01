@@ -1,7 +1,8 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
-import { ApolloClient, ApolloProvider, InMemoryCache } from "@apollo/client";
+import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
+import { ApolloProvider } from "@apollo/client/react";
 
 // TODO cleanup
 const apolloServerUrl: string =
@@ -9,7 +10,7 @@ const apolloServerUrl: string =
     ? import.meta.env.VITE_BACKEND_URL
     : "http://localhost:4000";
 const client = new ApolloClient({
-  uri: apolloServerUrl,
+  link: new HttpLink({ uri: apolloServerUrl }),
   cache: new InMemoryCache(),
 });
 

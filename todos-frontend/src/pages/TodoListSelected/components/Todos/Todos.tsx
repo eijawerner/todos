@@ -11,11 +11,10 @@ import { style } from "./Todos.style";
 import { TodoRow } from "./components/TodoRow/TodoRow";
 import { Button } from "../../../../common/components/Button/Button";
 import {
-  FetchResult,
   useApolloClient,
   useMutation,
   useQuery,
-} from "@apollo/client";
+} from "@apollo/client/react";
 import { queries } from "../../Queries";
 import { useInterval } from "../../../../common/hooks/Time";
 import {
@@ -97,9 +96,7 @@ function TodosBase({ listName }: TodosProps) {
         if (changes.length > 0) {
           // load change requests
           console.log("save changes!", changes);
-          let promises: (() => Promise<
-            FetchResult<any, Record<string, any>, Record<string, any>>
-          >)[] = [];
+          let promises: (() => Promise<unknown>)[] = [];
           changes.forEach((change) => {
             if (change.type === "update") {
               console.log("update todo change");
@@ -421,9 +418,14 @@ function TodosBase({ listName }: TodosProps) {
       });
   };
 
+  type GetTodoNoteQueryResult = {
+    todos: Array<{
+      note: TodoNote | null;
+    }>;
+  };
   const viewNote = async (todoId: string) => {
     try {
-      const { data } = await client.query({
+      const { data } = await client.query<GetTodoNoteQueryResult>({
         query: queries.GET_TODO_NOTE,
         variables: { todoId },
         fetchPolicy: "network-only", // Ensures fresh data
@@ -435,7 +437,7 @@ function TodosBase({ listName }: TodosProps) {
         console.log("No note found, creating one...");
         await handleAddNote(todoId);
 
-        const { data: newlyCreatedTodoNoteData } = await client.query({
+        const { data: newlyCreatedTodoNoteData } = await client.query<GetTodoNoteQueryResult>({
           query: queries.GET_TODO_NOTE,
           variables: { todoId },
           fetchPolicy: "network-only", // Ensures fresh data

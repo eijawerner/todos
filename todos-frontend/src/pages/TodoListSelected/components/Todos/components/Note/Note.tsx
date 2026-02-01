@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Todo, TodoNote } from "../../../../../../common/types/Models";
+import React, { useCallback, useState } from "react";
+import { TodoNote } from "../../../../../../common/types/Models";
 import { Button } from "../../../../../../common/components/Button/Button";
 import styled from "styled-components";
 import {
@@ -7,8 +7,6 @@ import {
   COLOR_DARK_BLUE,
   COLOR_GREY_LIGHT,
 } from "../../../../../../common/contants/colors";
-import { queries } from "../../../../Queries";
-import { useQuery } from "@apollo/client/react/hooks/useQuery";
 
 const StyledTextArea = styled.textarea`
   flex-grow: 1;

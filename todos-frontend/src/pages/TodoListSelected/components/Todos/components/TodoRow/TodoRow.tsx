@@ -1,8 +1,6 @@
 import { StyledProps, Todo } from "../../../../../../common/types/Models";
 import styled from "styled-components";
 import React, { ChangeEvent, useContext, useState } from "react";
-import { useMutation } from "@apollo/client";
-import { queries } from "../../../../Queries";
 import { StyledCheckboxInput } from "../../../../../../common/components/Checkbox";
 import { COLOR_BLACK } from "../../../../../../common/contants/colors";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/20/solid";
