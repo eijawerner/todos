@@ -24,7 +24,7 @@
     "@vitejs/plugin-react": "^4.3.3",
     "prettier": "3.5.1",
     "typescript": "^4.9.5",
-    "vite": "^4.5.5"
+    "vite": "^7.3.1"
   },
   "dependencies": {
     "@apollo/client": "^3.11.10",
@@ -35,8 +35,8 @@
     "graphql": "^16.9.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "serve": "^14.2.4",
-    "styled-components": "^6.1.13"
+    "serve": "^14.2.5",
+    "styled-components": "^6.3.8"
   },
   "browserslist": {
     "production": [
@@ -50,5 +50,8 @@
       "last 1 safari version"
     ]
   },
-  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
+  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610",
+  "resolutions": {
+    "cross-spawn": "^7.0.5"
+  }
 }
