@@ -130,7 +130,23 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
       />
 
       {!isOnline && (
-        <div style={{ color: "red", paddingTop: "8px" }}>Disconnected</div>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 10,
+            background: "#d32f2f",
+            color: "white",
+            textAlign: "center",
+            padding: "0.5rem",
+            fontSize: "1rem",
+            fontWeight: "bold",
+          }}
+        >
+          Disconnected
+        </div>
       )}
 
       <StyledSelectListWrapper>
