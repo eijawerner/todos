@@ -1,13 +1,13 @@
 import React, { ChangeEvent, useState } from "react";
 import { style } from "./TodoListSelector.style";
-import { StyledProps, TodoList } from "../../../../common/types/Models";
+import { StyledProps, TodoListResponse } from "../../../../common/types/Models";
 import styled from "styled-components";
 
 export const NONE_SELECTED = "none";
 
 export type TodoListSelectorProps = StyledProps & {
   selected: string;
-  todoLists: TodoList[];
+  todoLists: TodoListResponse[];
   onSelectTodoListChange: (todoListName: string) => void;
 };
 function TodoListSelectorBase({
@@ -34,7 +34,7 @@ function TodoListSelectorBase({
         <option key={NONE_SELECTED} value={NONE_SELECTED}>
           {"Please select..."}
         </option>
-        {todoLists.map((list: TodoList) => (
+        {todoLists.map((list: TodoListResponse) => (
           <option key={list.name} value={list.name}>
             {list.name}
           </option>

@@ -1,5 +1,5 @@
 {
-  "name": "test-graphql-neo4j-backend",
+  "name": "todos-backend",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -16,15 +16,10 @@
   },
   "keywords": [],
   "dependencies": {
-    "@neo4j/graphql": "6.6.4",
-    "@apollo/server": "5.3.0",
+    "cors": "2.8.6",
     "dotenv": "16.4.5",
-    "graphql": "16.12.0",
-    "neo4j-driver": "5.28.3",
-    "graphql-tag": "2.12.6"
+    "express": "5.2.1",
+    "neo4j-driver": "5.28.3"
   },
-  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610",
-  "resolutions": {
-    "sha.js": "^2.4.12"
-  }
+  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }

@@ -22,6 +22,10 @@ export interface TodoList {
   todos: [Todo];
 }
 
+export interface TodoListResponse {
+  name: string;
+}
+
 export interface TodoListsData {
   todoLists: TodoList[];
 }

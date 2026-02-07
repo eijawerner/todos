@@ -3,7 +3,6 @@ import {
   ChangeRequest,
   StyledProps,
   Todo,
-  TodoListsData,
   TodoNote,
 } from "../../../../common/types/Models";
 import React, { useCallback, useEffect, useState } from "react";
@@ -11,16 +10,18 @@ import { style } from "./Todos.style";
 import { TodoRow } from "./components/TodoRow/TodoRow";
 import { Button } from "../../../../common/components/Button/Button";
 import {
-  useApolloClient,
-  useMutation,
   useQuery,
-} from "@apollo/client/react";
-import { queries } from "../../Queries";
-import { useInterval } from "../../../../common/hooks/Time";
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
-  COLOR_BLUE_SKY,
-  COLOR_GREY_LIGHT,
-} from "../../../../common/contants/colors";
+  fetchTodos,
+  createTodo,
+  updateTodo,
+  deleteTodo as deleteTodoApi,
+  fetchTodoNote,
+  upsertTodoNote,
+} from "../../../../api/todoApi";
+import { COLOR_GREY_LIGHT } from "../../../../common/contants/colors";
 import { Note } from "./components/Note/Note";
 import { SortableList } from "../SortableList/SortableList";
 
@@ -43,15 +44,6 @@ const StyledTodoRowWrapper = styled.div`
   margin: 0 0.75rem;
 `;
 
-const StyledTodoList = styled.ul`
-  width: 100%;
-  max-width: 50rem;
-  color: ${COLOR_BLUE_SKY};
-  list-style-type: none;
-  padding: 0.5rem 0 1rem 0;
-  margin: 0;
-`;
-
 const executeSequentially = (promiseFactories: any) => {
   let result = Promise.resolve();
   promiseFactories.forEach((promiseFactory: any) => {
@@ -61,17 +53,13 @@ const executeSequentially = (promiseFactories: any) => {
 };
 
 function TodosBase({ listName }: TodosProps) {
-  // Queries
-  const loadTodoData = useQuery<TodoListsData>(
-    queries.GET_TODOS_IN_TODOLIST_WITH_NAME,
-    { variables: { listName: listName } },
-  );
+  const queryClient = useQueryClient();
 
-  // Mutations
-  const [addTodo, addTodoData] = useMutation(queries.CREATE_TODO);
-  const [editTodo, editTodoData] = useMutation(queries.UPDATE_TODO);
-  const [addTodoNote] = useMutation(queries.CREATE_TODO_NOTE);
-  const [updateTodoNote] = useMutation(queries.UPDATE_TODO_NOTE);
+  // Query
+  const loadTodoData = useQuery({
+    queryKey: ["todos", listName],
+    queryFn: () => fetchTodos(listName),
+  });
 
   // State
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -94,40 +82,25 @@ function TodosBase({ listName }: TodosProps) {
         console.log("ONLINE AGAIN!");
         console.log("CURRENT changes", changes);
         if (changes.length > 0) {
-          // load change requests
           console.log("save changes!", changes);
-          let promises: (() => Promise<unknown>)[] = [];
+          let promises: (() => Promise<any>)[] = [];
           changes.forEach((change) => {
             if (change.type === "update") {
               console.log("update todo change");
-              const editPromise = () =>
-                editTodo({ variables: { ...change.todo } });
+              const editPromise = () => updateTodo({ ...change.todo });
               promises.push(editPromise);
             } else if (change.type === "add") {
               console.log("add todo change", { ...change.todo });
               const addPromise = () =>
-                addTodo({
-                  variables: {
-                    listName,
-                    task: change.todo.text,
-                    todoId: change.todo.todoId,
-                    checked: change.todo.checked,
-                    order: change.todo.order,
-                  },
+                createTodo(listName, {
+                  text: change.todo.text,
+                  todoId: change.todo.todoId,
+                  checked: change.todo.checked,
+                  order: change.todo.order,
                 });
               promises.push(addPromise);
             } else if (change.type === "delete") {
-              const deleteNoteInTodo = () =>
-                client.mutate({
-                  mutation: queries.DELETE_TODO_NOTE_BELONGING_TO_TODO,
-                  variables: { todoId: change.todo.todoId },
-                });
-              promises.push(deleteNoteInTodo);
-              const deletePromise = () =>
-                client.mutate({
-                  mutation: queries.DELETE_TODO,
-                  variables: { todoId: change.todo.todoId },
-                });
+              const deletePromise = () => deleteTodoApi(change.todo.todoId);
               promises.push(deletePromise);
             }
           });
@@ -135,13 +108,11 @@ function TodosBase({ listName }: TodosProps) {
           executeSequentially(promises)
             .then(() => {
               console.log("successfully synced changes");
-              console.log("set empty list changes");
               setChanges([]);
               reloadTodosList();
             })
             .catch(() => {
               console.log("failed to sync all changes");
-              console.log("set empty list changes");
               setChanges([]);
             });
         } else {
@@ -164,8 +135,6 @@ function TodosBase({ listName }: TodosProps) {
   useEffect(() => {
     console.log("changes", changes);
   }, [changes]);
-
-  const client = useApolloClient();
 
   const todoRefs = React.useRef<Map<string, HTMLInputElement>>(new Map());
 
@@ -193,10 +162,7 @@ function TodosBase({ listName }: TodosProps) {
   };
 
   useEffect(() => {
-    const todoList: Todo[] =
-      loadTodoData.data && loadTodoData.data.todoLists.length > 0
-        ? loadTodoData.data?.todoLists[0].todos
-        : [];
+    const todoList: Todo[] = loadTodoData.data ?? [];
     // Don't overwrite if there are changes locally that needs to be saved first
     if (changes.length === 0) {
       sortAndSetTodos(todoList);
@@ -204,10 +170,7 @@ function TodosBase({ listName }: TodosProps) {
   }, [listName, loadTodoData.data]);
 
   const reloadTodosList = () => {
-    loadTodoData
-      .refetch()
-      .then((r) => console.log("reloaded todos"))
-      .catch((error) => console.log(error));
+    queryClient.invalidateQueries({ queryKey: ["todos", listName] });
   };
 
   const handleCheckTodo = (todo: Todo, checked: boolean) => {
@@ -258,7 +221,7 @@ function TodosBase({ listName }: TodosProps) {
         }
       });
       setTodos(newTodos);
-      editTodo({ variables: { ...todo } })
+      updateTodo({ ...todo })
         .then(() => {
           // success, do nothing
         })
@@ -300,17 +263,13 @@ function TodosBase({ listName }: TodosProps) {
       setTodos([...todos, newTodoItem]);
 
       if (isOnline) {
-        addTodo({
-          variables: {
-            listName: listName,
-            task: newTodoItem.text,
-            todoId: newTodoItem.todoId,
-            checked: newTodoItem.checked,
-            order: newTodoItem.order,
-          },
+        createTodo(listName, {
+          text: newTodoItem.text,
+          todoId: newTodoItem.todoId,
+          checked: newTodoItem.checked,
+          order: newTodoItem.order,
         })
-          .then((result) => {
-            // success, set focus to the newly added todo
+          .then(() => {
             setFocusToTodo(newTodoItem.todoId);
           })
           // Alert user and decide if want to retry or skip change?
@@ -334,7 +293,7 @@ function TodosBase({ listName }: TodosProps) {
 
   const updateMultipleTodos = async (todos: Todo[]) => {
     const updateOrderPromises = todos.map((todo) => {
-      return editTodo({ variables: { ...todo } });
+      return updateTodo({ ...todo });
     });
     return await Promise.all(updateOrderPromises);
   };
@@ -343,33 +302,16 @@ function TodosBase({ listName }: TodosProps) {
     // remove locally first
     setTodos(todos.filter((todo) => todo.todoId !== id));
 
-    if (client && isOnline) {
-      client
-        .mutate({
-          mutation: queries.DELETE_TODO_NOTE_BELONGING_TO_TODO,
-          variables: { todoId: id },
-        })
+    if (isOnline) {
+      deleteTodoApi(id)
         .then(() => {
-          client
-            .mutate({
-              mutation: queries.DELETE_TODO,
-              variables: { todoId: id },
-            })
-            .then((result) => {
-              console.log(`deleted todo with id=${id}`);
-            })
-            .catch((error) => {
-              console.log(error);
-              reloadTodosList();
-              setErrorBanner("failed to delete task");
-            });
+          console.log(`deleted todo with id=${id}`);
         })
-        .catch((e) =>
-          console.log(
-            "failed to delete todo note belonging to todo to be deleted",
-            e,
-          ),
-        );
+        .catch((error) => {
+          console.log(error);
+          reloadTodosList();
+          setErrorBanner("failed to delete task");
+        });
     } else {
       // Save for when online again
       console.log("add delete change");
@@ -383,67 +325,35 @@ function TodosBase({ listName }: TodosProps) {
     }
   };
 
-  const handleAddNote = (todoId: string) => {
-    const note = {
-      text: "",
-      links: [],
-    };
-    return addTodoNote({
-      variables: { todoId, noteText: note.text },
-      // Make sure not keeping the cached version that doesn't have a note after adding it
-      refetchQueries: [
-        { query: queries.GET_TODO_NOTE, variables: { todoId } },
-        {
-          query: queries.GET_TODOS_IN_TODOLIST_WITH_NAME,
-          variables: { listName: listName },
-        },
-      ],
-    })
-      .then((result) => {
-        console.log(`added note to todo with id=${todoId}`);
+  const handleAddNote = async (todoId: string) => {
+    const noteText = "";
+    try {
+      await upsertTodoNote(todoId, noteText);
+      console.log(`added note to todo with id=${todoId}`);
 
         // Update local state immediately
-        setTodos((prevTodos) =>
-          prevTodos.map((todo) =>
-            todo.todoId === todoId
-              ? { ...todo, note: { text: note.text, links: note.links } }
-              : todo,
-          ),
-        );
-      })
-      .catch((error) => {
-        console.log(error);
-        setErrorBanner("failed to add note");
-        setTimeout(() => setErrorBanner(null), 3000);
-      });
+      setTodos((prevTodos) =>
+        prevTodos.map((todo) =>
+          todo.todoId === todoId
+            ? { ...todo, note: { text: noteText, links: [] } }
+            : todo,
+        ),
+      );
+    } catch (error) {
+      console.log(error);
+      setErrorBanner("failed to add note");
+      setTimeout(() => setErrorBanner(null), 3000);
+    }
   };
 
-  type GetTodoNoteQueryResult = {
-    todos: Array<{
-      note: TodoNote | null;
-    }>;
-  };
   const viewNote = async (todoId: string) => {
     try {
-      const { data } = await client.query<GetTodoNoteQueryResult>({
-        query: queries.GET_TODO_NOTE,
-        variables: { todoId },
-        fetchPolicy: "network-only", // Ensures fresh data
-      });
-
-      let existingNote = data?.todos?.[0]?.note;
+      let existingNote = await fetchTodoNote(todoId);
 
       if (!existingNote) {
         console.log("No note found, creating one...");
         await handleAddNote(todoId);
-
-        const { data: newlyCreatedTodoNoteData } = await client.query<GetTodoNoteQueryResult>({
-          query: queries.GET_TODO_NOTE,
-          variables: { todoId },
-          fetchPolicy: "network-only", // Ensures fresh data
-        });
-
-        existingNote = newlyCreatedTodoNoteData?.todos?.[0]?.note;
+        existingNote = await fetchTodoNote(todoId);
       }
 
       if (!existingNote) {
@@ -461,18 +371,9 @@ function TodosBase({ listName }: TodosProps) {
   };
 
   const editNoteText = (todoId: string, noteText: string) => {
-    updateTodoNote({
-      variables: { todoId: todoId, noteText: noteText },
-      refetchQueries: [
-        { query: queries.GET_TODO_NOTE, variables: { todoId: todoId } },
-        {
-          query: queries.GET_TODOS_IN_TODOLIST_WITH_NAME,
-          variables: { listName: listName },
-        },
-      ],
-    })
-      .then((result) => {
-        // Update local state immediately
+      upsertTodoNote(todoId, noteText)
+      .then(() => {
+          // Update local state immediately
         setTodos((prevTodos) =>
           prevTodos.map((todo) =>
             todo.todoId === todoId
@@ -480,6 +381,7 @@ function TodosBase({ listName }: TodosProps) {
               : todo,
           ),
         );
+        queryClient.invalidateQueries({ queryKey: ["todos", listName] });
       })
       .catch((error) => {
         console.log("error", error);
@@ -499,7 +401,7 @@ function TodosBase({ listName }: TodosProps) {
           onClose={() => setNoteIsVisible(null)}
         />
       )}
-      {loadTodoData.loading && <p>loading...</p>}
+      {loadTodoData.isLoading && <p>loading...</p>}
       {loadTodoData.error && <p>{`Error: ${loadTodoData.error.message}`}</p>}
       {errorBanner && (
         <p style={{ fontSize: "1.5rem", color: "red" }}>{errorBanner}</p>

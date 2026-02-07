@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useQuery, useMutation, useApolloClient } from "@apollo/client/react";
 import {
-  StyledProps,
-  TodoList,
-  TodoListsData,
-} from "../../common/types/Models";
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { StyledProps, TodoListResponse } from "../../common/types/Models";
 import styled from "styled-components";
 import { style } from "./TodoListSelected.style";
 import {
@@ -13,7 +13,11 @@ import {
 } from "./components/TodoListSelector/TodoListSelector";
 import { Todos } from "./components/Todos/Todos";
 import { Button } from "../../common/components/Button/Button";
-import { queries } from "./Queries";
+import {
+  fetchTodoLists,
+  createTodoList,
+  deleteTodoList,
+} from "../../api/todoApi";
 import { TodoListCreateForm } from "./components/TodoListCreateForm/TodoListCreateForm";
 import { TodoListDeleteConfirmDialog } from "./components/TodoListDeleteConfirmDialog/TodoListConfirmDialog";
 
@@ -27,7 +31,7 @@ const StyledSelectListWrapper = styled.div`
   align-items: center;
 `;
 
-const sortByListName = (l1: TodoList, l2: TodoList) => {
+const sortByListName = (l1: TodoListResponse, l2: TodoListResponse) => {
   const listName1 = l1.name.toLocaleLowerCase();
   const listName2 = l2.name.toLocaleLowerCase();
   if (listName1 < listName2) {
@@ -39,11 +43,34 @@ const sortByListName = (l1: TodoList, l2: TodoList) => {
 };
 
 const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
-  const todoListsLoad = useQuery<TodoListsData>(queries.GET_TODO_LISTS);
+  const queryClient = useQueryClient();
+  const todoListsQuery = useQuery({
+    queryKey: ["todoLists"],
+    queryFn: fetchTodoLists,
+  });
+
   const [selectedList, setSelectedList] = useState<string>(NONE_SELECTED);
   const [newListFormIsVisible, setNewListFormIsVisible] = useState(false);
-  const [addList, addListData] = useMutation(queries.CREATE_TODOLIST_WITH_NAME);
-  const client = useApolloClient();
+
+  const addListMutation = useMutation({
+    mutationFn: (name: string) => createTodoList(name),
+    onSuccess: (_data, name) => {
+      setNewListFormIsVisible(false);
+      queryClient.invalidateQueries({ queryKey: ["todoLists"] });
+      setSelectedList(name);
+    },
+    onError: (error) => console.log(error),
+  });
+
+  const deleteListMutation = useMutation({
+    mutationFn: (name: string) => deleteTodoList(name),
+    onSuccess: () => {
+      setConfirmDeleteDialogVisible(false);
+      setSelectedList(NONE_SELECTED);
+      queryClient.invalidateQueries({ queryKey: ["todoLists"] });
+    },
+    onError: (error) => console.error("failed to delete list", error),
+  });
 
   const [confirmDeleteDialogVisible, setConfirmDeleteDialogVisible] =
     React.useState(false);
@@ -53,7 +80,6 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
-    // Update network status
     const handleStatusChange = () => {
       setIsOnline(navigator.onLine);
     };
@@ -67,11 +93,13 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
     };
   }, [isOnline]);
 
-  const todoLists = todoListsLoad.data ? todoListsLoad.data.todoLists : [];
+  const todoLists: TodoListResponse[] = todoListsQuery.data ?? [];
 
   useEffect(() => {
     if (todoLists.length > 0 && selectedList === NONE_SELECTED) {
-      setSelectedList([...todoLists].sort(sortByListName)[0].name);
+      setSelectedList(
+        [...todoLists].sort(sortByListName)[0].name,
+      );
     }
   }, [todoLists]);
 
@@ -84,49 +112,13 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
   };
 
   const handleCreateTodoList = (name: string) => {
-    addList({ variables: { listName: name } })
-      .then(() => {
-        setNewListFormIsVisible(false);
-        todoListsLoad
-          .refetch()
-          .then(() => {
-            setSelectedList(name);
-            console.log("reloaded");
-          })
-          .catch((error) => console.log(error));
-        console.log("added list");
-      })
-      .catch((error) => console.log(error));
+    addListMutation.mutate(name);
   };
 
   const handleCloseOverlayClick = () => setNewListFormIsVisible(false);
 
   const handleDeleteList = () => {
-    if (client) {
-      client
-        .mutate({
-          mutation: queries.DELETE_TODOS_IN_TODOLIST,
-          variables: { todoListName: selectedList },
-        })
-        .then(() => {
-          client
-            .mutate({
-              mutation: queries.DELETE_TODOLIST,
-              variables: { todoListName: selectedList },
-            })
-            .then(() => {
-              console.log("deleted list");
-              setConfirmDeleteDialogVisible(false);
-              setSelectedList(NONE_SELECTED);
-              todoListsLoad
-                .refetch()
-                .then((r) => console.log("reloaded todo lists"))
-                .catch(console.log);
-            })
-            .catch((e) => console.error("failed to delete todos", e));
-        })
-        .catch((e) => console.error("failed to delete todo list", e));
-    }
+    deleteListMutation.mutate(selectedList);
   };
 
   return (
