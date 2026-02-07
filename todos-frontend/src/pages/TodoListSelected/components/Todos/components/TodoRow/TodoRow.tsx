@@ -1,6 +1,7 @@
 import { StyledProps, Todo } from "../../../../../../common/types/Models";
 import styled from "styled-components";
-import React, { ChangeEvent, useContext, useState } from "react";
+import React, { ChangeEvent, useContext, useEffect, useState } from "react";
+import { useDebounce } from "../../../../../../common/hooks/useDebounce";
 import { StyledCheckboxInput } from "../../../../../../common/components/Checkbox";
 import { COLOR_BLACK } from "../../../../../../common/contants/colors";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/20/solid";
@@ -56,6 +57,17 @@ export const TodoRow = ({
   inputRef,
 }: TodoRowProps) => {
   const [taskText, setTaskText] = useState(todo.text);
+  const debouncedText = useDebounce(taskText, 500);
+
+  useEffect(() => {
+    if (debouncedText === todo.text) return;
+    saveTodo({
+      todoId: todo.todoId,
+      text: debouncedText,
+      checked: todo.checked,
+      order: todo.order,
+    });
+  }, [debouncedText]);
 
   const debugEnabled = useContext(DebugContext);
 
@@ -68,16 +80,6 @@ export const TodoRow = ({
     setTaskText(newText);
   };
 
-  const handleSaveTask = () => {
-    const newTodo = {
-      todoId: todo.todoId,
-      text: taskText,
-      checked: todo.checked,
-      order: todo.order,
-    };
-    saveTodo(newTodo);
-  };
-
   const handleKeywordKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key == "Enter") {
       addNewItem();
@@ -85,7 +87,7 @@ export const TodoRow = ({
   };
 
   return (
-    <StyledTodoRow onBlur={handleSaveTask}>
+    <StyledTodoRow>
       <StyledCheckboxInput
         type="checkbox"
         id="task_done"
