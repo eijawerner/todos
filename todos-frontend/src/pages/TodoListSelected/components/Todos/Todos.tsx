@@ -25,6 +25,7 @@ import {
 import { COLOR_GREY_LIGHT } from "../../../../common/contants/colors";
 import { Note } from "./components/Note/Note";
 import { SortableList } from "../SortableList/SortableList";
+import { Banner } from "../../../../common/components/Banner/Banner";
 
 export type TodosProps = StyledProps & {
   listName: string;
@@ -450,39 +451,10 @@ function TodosBase({ listName }: TodosProps) {
       {loadTodoData.isLoading && <p style={{ color: 'white'}}>loading...</p>}
       {loadTodoData.error && <p style={{ color: 'white'}}>{`Error: ${loadTodoData.error.message}`}</p>}
       {errorBanner && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 10,
-            background: "#d32f2f",
-            color: "white",
-            textAlign: "center",
-            padding: "0.5rem 2.5rem 0.5rem 0.5rem",
-            fontSize: "1rem",
-            fontWeight: "bold",
-          }}
-        >
-          {errorBanner}
-          <button
-            onClick={() => setErrorBanner(null)}
-            style={{
-              position: "absolute",
-              right: "0.5rem",
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "none",
-              border: "none",
-              color: "white",
-              fontSize: "1.2rem",
-              cursor: "pointer",
-            }}
-          >
-            ✕
-          </button>
-        </div>
+        <Banner
+          message={errorBanner}
+          onClose={() => setErrorBanner(null)}
+        />
       )}
       <SortableList
         items={todos.map((t) => {
