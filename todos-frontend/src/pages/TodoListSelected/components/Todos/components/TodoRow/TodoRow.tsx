@@ -3,7 +3,7 @@ import styled from "styled-components";
 import React, { ChangeEvent, useContext, useEffect, useState } from "react";
 import { useDebounce } from "../../../../../../common/hooks/useDebounce";
 import { StyledCheckboxInput } from "../../../../../../common/components/Checkbox";
-import { COLOR_BLACK, COLOR_BEIGE_NOTE } from "../../../../../../common/contants/colors";
+import { COLOR_BLACK, COLOR_BEIGE_LIGHT } from "../../../../../../common/contants/colors";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/20/solid";
 import { IconButton } from "../../../../../../common/components/IconButton/IconButton";
 import { DebugContext } from "../../../../../../App";
@@ -118,7 +118,7 @@ export const TodoRow = ({
       )}
       <IconButton
         onClick={() => viewNote(todo.todoId)}
-        bgColor={hasNote(todo) ? COLOR_BEIGE_NOTE : undefined}
+        bgColor={hasNote(todo) ? COLOR_BEIGE_LIGHT : undefined}
       >
         <PencilSquareIcon />
       </IconButton>
