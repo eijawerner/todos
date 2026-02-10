@@ -10,3 +10,4 @@ export const COLOR_BLUE_SKY_LIGHT = "rgb(155, 197, 207)";
 export const COLOR_BLUE_SKY_DARK = "rgb(110, 156, 168)";
 export const COLOR_BLACK = "rgb(35, 50, 54)";
 export const COLOR_WHITE = "rgb(244, 241, 239)";
+export const COLOR_BEIGE_NOTE = "rgb(200, 170, 120)";

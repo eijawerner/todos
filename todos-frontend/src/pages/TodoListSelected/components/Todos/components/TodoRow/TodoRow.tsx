@@ -3,10 +3,17 @@ import styled from "styled-components";
 import React, { ChangeEvent, useContext, useEffect, useState } from "react";
 import { useDebounce } from "../../../../../../common/hooks/useDebounce";
 import { StyledCheckboxInput } from "../../../../../../common/components/Checkbox";
-import { COLOR_BLACK } from "../../../../../../common/contants/colors";
+import { COLOR_BLACK, COLOR_BEIGE_NOTE } from "../../../../../../common/contants/colors";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/20/solid";
 import { IconButton } from "../../../../../../common/components/IconButton/IconButton";
 import { DebugContext } from "../../../../../../App";
+
+const hasNote = (todo: Todo) => {
+  if (!todo?.note) {
+    return false;
+  }
+  return todo.note.text.trim() !== '';
+}
 
 const StyledTextInput = styled.input<{ checked: boolean }>`
   flex-grow: 1;
@@ -109,7 +116,10 @@ export const TodoRow = ({
       {debugEnabled && (
         <StyledDebugOrderText>{todo.order}</StyledDebugOrderText>
       )}
-      <IconButton onClick={() => viewNote(todo.todoId)}>
+      <IconButton
+        onClick={() => viewNote(todo.todoId)}
+        bgColor={hasNote(todo) ? COLOR_BEIGE_NOTE : undefined}
+      >
         <PencilSquareIcon />
       </IconButton>
       <IconButton onClick={() => deleteTodo(todo.todoId)}>
