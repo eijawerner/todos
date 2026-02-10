@@ -11,6 +11,7 @@ import { TodoRow } from "./components/TodoRow/TodoRow";
 import { Button } from "../../../../common/components/Button/Button";
 import {
   useQuery,
+  useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
 import {
@@ -32,7 +33,6 @@ export type TodosProps = StyledProps & {
 const StyledTodoRowWrapper = styled.div`
   background: ${COLOR_GREY_LIGHT};
   border-radius: 0.5rem;
-  margin: 0.5rem;
   width: 100%;
 
   display: flex;
@@ -53,15 +53,6 @@ const executeSequentially = (promiseFactories: any) => {
 };
 
 function TodosBase({ listName }: TodosProps) {
-  const queryClient = useQueryClient();
-
-  // Query
-  const loadTodoData = useQuery({
-    queryKey: ["todos", listName],
-    queryFn: () => fetchTodos(listName),
-  });
-
-  // State
   const [todos, setTodos] = useState<Todo[]>([]);
   const [changes, setChanges] = useState<ChangeRequest[]>([]);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
@@ -73,12 +64,68 @@ function TodosBase({ listName }: TodosProps) {
   // Online state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
+  const errorTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const REGULAR_TIMEOUT_BANNER = 3000;
+  const showErrorBanner = (message: string, timeout?: number) => {
+    if (errorTimeoutRef.current) {
+      clearTimeout(errorTimeoutRef.current);
+      errorTimeoutRef.current = null;
+    }
+    setErrorBanner(message);
+    if (timeout) {
+      errorTimeoutRef.current = setTimeout(() => {
+        setErrorBanner(null);
+        errorTimeoutRef.current = null;
+      }, timeout);
+    }
+  }
+
+  const queryClient = useQueryClient();
+
+  // Query
+  const loadTodoData = useQuery({
+    queryKey: ["todos", listName],
+    queryFn: () => fetchTodos(listName),
+  });
+
+  // Mutations
+  const updateTodoMutation = useMutation({
+    mutationFn: updateTodo,
+    onError: (error) => {
+      showErrorBanner("failed to edit task", REGULAR_TIMEOUT_BANNER);
+      console.log(error);
+      reloadTodosList();
+    },
+  });
+
+  const createTodoMutation = useMutation({
+    mutationFn: (params: {
+      listName: string;
+      todo: { text: string; todoId: string; checked: boolean; order: number };
+    }) => createTodo(params.listName, params.todo),
+  });
+
+  const deleteTodoMutation = useMutation({
+    mutationFn: deleteTodoApi,
+    onError: (error) => {
+      console.log(error);
+      reloadTodosList();
+      showErrorBanner("failed to delete task", 5000);
+    },
+  });
+
+  const upsertNoteMutation = useMutation({
+    mutationFn: (params: { todoId: string; text: string }) =>
+      upsertTodoNote(params.todoId, params.text),
+  });
+
   useEffect(() => {
     // Update network status
     const handleStatusChange = () => {
       console.log("STATUS CHANGED", navigator.onLine);
       setIsOnline(navigator.onLine);
-      if (navigator.onLine === true) {
+      if (navigator.onLine) {
         console.log("ONLINE AGAIN!");
         console.log("CURRENT changes", changes);
         if (changes.length > 0) {
@@ -87,20 +134,25 @@ function TodosBase({ listName }: TodosProps) {
           changes.forEach((change) => {
             if (change.type === "update") {
               console.log("update todo change");
-              const editPromise = () => updateTodo({ ...change.todo });
+              const editPromise = () =>
+                updateTodoMutation.mutateAsync({ ...change.todo });
               promises.push(editPromise);
             } else if (change.type === "add") {
               console.log("add todo change", { ...change.todo });
               const addPromise = () =>
-                createTodo(listName, {
-                  text: change.todo.text,
-                  todoId: change.todo.todoId,
-                  checked: change.todo.checked,
-                  order: change.todo.order,
+                createTodoMutation.mutateAsync({
+                  listName,
+                  todo: {
+                    text: change.todo.text,
+                    todoId: change.todo.todoId,
+                    checked: change.todo.checked,
+                    order: change.todo.order,
+                  },
                 });
               promises.push(addPromise);
             } else if (change.type === "delete") {
-              const deletePromise = () => deleteTodoApi(change.todo.todoId);
+              const deletePromise = () =>
+                deleteTodoMutation.mutateAsync(change.todo.todoId);
               promises.push(deletePromise);
             }
           });
@@ -139,7 +191,7 @@ function TodosBase({ listName }: TodosProps) {
   const todoRefs = React.useRef<Map<string, HTMLInputElement>>(new Map());
 
   const getSortedTodos = (todoList: Todo[]) => {
-    const todosOrdered = [...todoList].sort((t1, t2) => {
+    return [...todoList].sort((t1, t2) => {
       if (t1.order > t2.order) {
         return 1;
       } else if (t1.order < t2.order) {
@@ -147,7 +199,6 @@ function TodosBase({ listName }: TodosProps) {
       }
       return 0;
     });
-    return todosOrdered;
   };
 
   const sortAndSetTodos = (todoList: Todo[]) => {
@@ -221,16 +272,7 @@ function TodosBase({ listName }: TodosProps) {
         }
       });
       setTodos(newTodos);
-      updateTodo({ ...todo })
-        .then(() => {
-          // success, do nothing
-        })
-        .catch((error) => {
-          setErrorBanner("failed to edit task");
-          setTimeout(() => setErrorBanner(null), 3000);
-          console.log(error);
-          reloadTodosList();
-        });
+      updateTodoMutation.mutate({ ...todo }); // success, do nothing (error handled by mutation)
     } else {
       console.log("add change", editChange);
       setChanges([...changes, editChange]);
@@ -252,36 +294,42 @@ function TodosBase({ listName }: TodosProps) {
         checked: false,
         order: order,
       };
-      // Add locally first then update data as well
-      // todo add id or timestamp to change request as well, to know which one to remove when succeds
       const addChange: ChangeRequest = {
         type: "add",
         todo: newTodoItem,
         id: crypto.randomUUID(),
       };
 
+      // Add locally first then update data as well
+      // todo add id or timestamp to change request as well, to know which one to remove when succeeds
       setTodos([...todos, newTodoItem]);
 
       if (isOnline) {
-        createTodo(listName, {
-          text: newTodoItem.text,
-          todoId: newTodoItem.todoId,
-          checked: newTodoItem.checked,
-          order: newTodoItem.order,
-        })
-          .then(() => {
-            setFocusToTodo(newTodoItem.todoId);
-          })
-          // Alert user and decide if want to retry or skip change?
-          .catch((error) => {
-            setTodos(
-              todos.filter((todo) => todo.todoId !== newTodoItem.todoId),
-            );
-            setErrorBanner("failed to add task");
-            setTimeout(() => setErrorBanner(null), 3000);
-            reloadTodosList();
-            console.log("failed to add task", error);
-          });
+        createTodoMutation.mutate(
+          {
+            listName,
+            todo: {
+              text: newTodoItem.text,
+              todoId: newTodoItem.todoId,
+              checked: newTodoItem.checked,
+              order: newTodoItem.order,
+            },
+          },
+          {
+            onSuccess: () => {
+              setFocusToTodo(newTodoItem.todoId);
+            },
+            // Alert user and decide if want to retry or skip change?
+            onError: (error) => {
+              setTodos(
+                todos.filter((todo) => todo.todoId !== newTodoItem.todoId),
+              );
+              showErrorBanner("failed to add task", REGULAR_TIMEOUT_BANNER);
+              reloadTodosList();
+              console.log("failed to add task", error);
+            },
+          },
+        );
       } else {
         // Save change for later when online again
         console.log("add change", addChange);
@@ -293,7 +341,7 @@ function TodosBase({ listName }: TodosProps) {
 
   const updateMultipleTodos = async (todos: Todo[]) => {
     const updateOrderPromises = todos.map((todo) => {
-      return updateTodo({ ...todo });
+      return updateTodoMutation.mutateAsync({ ...todo });
     });
     return await Promise.all(updateOrderPromises);
   };
@@ -303,15 +351,11 @@ function TodosBase({ listName }: TodosProps) {
     setTodos(todos.filter((todo) => todo.todoId !== id));
 
     if (isOnline) {
-      deleteTodoApi(id)
-        .then(() => {
+      deleteTodoMutation.mutate(id, {
+        onSuccess: () => {
           console.log(`deleted todo with id=${id}`);
-        })
-        .catch((error) => {
-          console.log(error);
-          reloadTodosList();
-          setErrorBanner("failed to delete task");
-        });
+        },
+      });
     } else {
       // Save for when online again
       console.log("add delete change");
@@ -328,10 +372,10 @@ function TodosBase({ listName }: TodosProps) {
   const handleAddNote = async (todoId: string) => {
     const noteText = "";
     try {
-      await upsertTodoNote(todoId, noteText);
+      await upsertNoteMutation.mutateAsync({ todoId, text: noteText });
       console.log(`added note to todo with id=${todoId}`);
 
-        // Update local state immediately
+      // Update local state immediately
       setTodos((prevTodos) =>
         prevTodos.map((todo) =>
           todo.todoId === todoId
@@ -341,8 +385,7 @@ function TodosBase({ listName }: TodosProps) {
       );
     } catch (error) {
       console.log(error);
-      setErrorBanner("failed to add note");
-      setTimeout(() => setErrorBanner(null), 3000);
+      showErrorBanner("failed to add note", REGULAR_TIMEOUT_BANNER);
     }
   };
 
@@ -360,7 +403,7 @@ function TodosBase({ listName }: TodosProps) {
         console.error(
           "Still no note found, that is odd since it was just created...",
         );
-        setErrorBanner("Failed to show note");
+        showErrorBanner("Failed to show note", REGULAR_TIMEOUT_BANNER);
         return;
       }
 
@@ -371,24 +414,27 @@ function TodosBase({ listName }: TodosProps) {
   };
 
   const editNoteText = (todoId: string, noteText: string) => {
-      upsertTodoNote(todoId, noteText)
-      .then(() => {
+    upsertNoteMutation.mutate(
+      { todoId, text: noteText },
+      {
+        onSuccess: () => {
           // Update local state immediately
-        setTodos((prevTodos) =>
-          prevTodos.map((todo) =>
-            todo.todoId === todoId
-              ? { ...todo, note: { text: noteText, links: [] } }
-              : todo,
-          ),
-        );
-        queryClient.invalidateQueries({ queryKey: ["todos", listName] });
-      })
-      .catch((error) => {
-        console.log("error", error);
-        reloadTodosList();
-        setErrorBanner("failed to edit note");
-        setTimeout(() => setErrorBanner(null), 3000);
-      });
+          setTodos((prevTodos) =>
+            prevTodos.map((todo) =>
+              todo.todoId === todoId
+                ? { ...todo, note: { text: noteText, links: [] } }
+                : todo,
+            ),
+          );
+          queryClient.invalidateQueries({ queryKey: ["todos", listName] });
+        },
+        onError: (error) => {
+          console.log("error", error);
+          reloadTodosList();
+          showErrorBanner("failed to edit note", REGULAR_TIMEOUT_BANNER);
+        },
+      },
+    );
   };
 
   return (
@@ -401,10 +447,42 @@ function TodosBase({ listName }: TodosProps) {
           onClose={() => setNoteIsVisible(null)}
         />
       )}
-      {loadTodoData.isLoading && <p>loading...</p>}
-      {loadTodoData.error && <p>{`Error: ${loadTodoData.error.message}`}</p>}
+      {loadTodoData.isLoading && <p style={{ color: 'white'}}>loading...</p>}
+      {loadTodoData.error && <p style={{ color: 'white'}}>{`Error: ${loadTodoData.error.message}`}</p>}
       {errorBanner && (
-        <p style={{ fontSize: "1.5rem", color: "red" }}>{errorBanner}</p>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 10,
+            background: "#d32f2f",
+            color: "white",
+            textAlign: "center",
+            padding: "0.5rem 2.5rem 0.5rem 0.5rem",
+            fontSize: "1rem",
+            fontWeight: "bold",
+          }}
+        >
+          {errorBanner}
+          <button
+            onClick={() => setErrorBanner(null)}
+            style={{
+              position: "absolute",
+              right: "0.5rem",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              color: "white",
+              fontSize: "1.2rem",
+              cursor: "pointer",
+            }}
+          >
+            ✕
+          </button>
+        </div>
       )}
       <SortableList
         items={todos.map((t) => {

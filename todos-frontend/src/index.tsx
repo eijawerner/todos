@@ -3,7 +3,13 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
 const container = document.getElementById("app");
 const root = createRoot(container!);

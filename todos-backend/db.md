@@ -18,30 +18,3 @@ CREATE (todo)-[:BELONGS_TO]->(list)
 MATCH (list: TodoList), (user: User)
 WHERE list.name = "Att handla" AND user.name = "Eija"
 CREATE (list)-[:CREATED_BY]->(user)
-
-/* GRAPHQL */
-query GetUsers {
-    users {
-        name
-        email
-    }
-}
-
-query GetTodoLists {
-    todoLists {
-        name
-    }
-}
-
-query GetTodos {
-    todos {
-        text
-        checked
-    }
-}
-
-query GetTodosInTodoList {
-    todoLists {
-        name
-    }
-}
