@@ -25,7 +25,8 @@ import {
 import { COLOR_GREY_LIGHT } from "../../../../common/contants/colors";
 import { Note } from "./components/Note/Note";
 import { SortableList } from "../SortableList/SortableList";
-import { Banner } from "../../../../common/components/Banner/Banner";
+import { HeaderBanner } from "../../../../common/components/HeaderBanner/HeaderBanner";
+import { REGULAR_TIMEOUT_BANNER } from '../../../../common/contants/numbers';
 
 export type TodosProps = StyledProps & {
   listName: string;
@@ -67,7 +68,6 @@ function TodosBase({ listName }: TodosProps) {
 
   const errorTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const REGULAR_TIMEOUT_BANNER = 3000;
   const showErrorBanner = (message: string, timeout?: number) => {
     if (errorTimeoutRef.current) {
       clearTimeout(errorTimeoutRef.current);
@@ -93,11 +93,6 @@ function TodosBase({ listName }: TodosProps) {
   // Mutations
   const updateTodoMutation = useMutation({
     mutationFn: updateTodo,
-    onError: (error) => {
-      showErrorBanner("failed to edit task", REGULAR_TIMEOUT_BANNER);
-      console.log(error);
-      reloadTodosList();
-    },
   });
 
   const createTodoMutation = useMutation({
@@ -109,11 +104,6 @@ function TodosBase({ listName }: TodosProps) {
 
   const deleteTodoMutation = useMutation({
     mutationFn: deleteTodoApi,
-    onError: (error) => {
-      console.log(error);
-      reloadTodosList();
-      showErrorBanner("failed to delete task", 5000);
-    },
   });
 
   const upsertNoteMutation = useMutation({
@@ -251,6 +241,7 @@ function TodosBase({ listName }: TodosProps) {
       .then(() => reloadTodosList())
       .catch((e) => {
         setTodos(oldTodos);
+        showErrorBanner("Failed to update task", REGULAR_TIMEOUT_BANNER);
         console.error("Error updating todos:", e);
       });
   };
@@ -265,6 +256,7 @@ function TodosBase({ listName }: TodosProps) {
 
     if (isOnline) {
       console.log("handleEditTodo is ONLINE");
+      const oldTodos = [...todos];
       const newTodos = todos.map((t) => {
         if (t.todoId === todo.todoId) {
           return todo;
@@ -273,7 +265,14 @@ function TodosBase({ listName }: TodosProps) {
         }
       });
       setTodos(newTodos);
-      updateTodoMutation.mutate({ ...todo }); // success, do nothing (error handled by mutation)
+      updateTodoMutation.mutate({ ...todo }, {
+        onSuccess: () => reloadTodosList(),
+        onError: (error) => {
+          setTodos(oldTodos);
+          showErrorBanner("Failed to edit task", REGULAR_TIMEOUT_BANNER);
+          console.error('failed to edit task', error);
+        },
+      });
     } else {
       console.log("add change", editChange);
       setChanges([...changes, editChange]);
@@ -319,14 +318,14 @@ function TodosBase({ listName }: TodosProps) {
           {
             onSuccess: () => {
               setFocusToTodo(newTodoItem.todoId);
+              reloadTodosList();
             },
             // Alert user and decide if want to retry or skip change?
             onError: (error) => {
               setTodos(
                 todos.filter((todo) => todo.todoId !== newTodoItem.todoId),
               );
-              showErrorBanner("failed to add task", REGULAR_TIMEOUT_BANNER);
-              reloadTodosList();
+              showErrorBanner("Failed to add task", REGULAR_TIMEOUT_BANNER);
               console.log("failed to add task", error);
             },
           },
@@ -349,12 +348,19 @@ function TodosBase({ listName }: TodosProps) {
 
   const handleDeleteTodo = (id: string) => {
     // remove locally first
+    const oldTodos = [...todos];
     setTodos(todos.filter((todo) => todo.todoId !== id));
 
     if (isOnline) {
       deleteTodoMutation.mutate(id, {
         onSuccess: () => {
+          reloadTodosList();
           console.log(`deleted todo with id=${id}`);
+        },
+        onError: (error) => {
+          setTodos(oldTodos);
+          showErrorBanner("Failed to delete task", REGULAR_TIMEOUT_BANNER);
+          console.error('failed to delete task', error);
         },
       });
     } else {
@@ -385,7 +391,7 @@ function TodosBase({ listName }: TodosProps) {
         ),
       );
     } catch (error) {
-      console.log(error);
+      console.error('failed to add note', error);
       showErrorBanner("failed to add note", REGULAR_TIMEOUT_BANNER);
     }
   };
@@ -410,29 +416,31 @@ function TodosBase({ listName }: TodosProps) {
 
       setNoteIsVisible({ todoId: todoId, note: existingNote });
     } catch (error) {
-      console.log("Error fetching note:", error);
+      console.error("failed fetching note", error);
     }
   };
 
   const editNoteText = (todoId: string, noteText: string) => {
+    // Update local state optimistically
+    const oldTodos = [...todos];
+    setTodos((prevTodos) =>
+      prevTodos.map((todo) =>
+        todo.todoId === todoId
+          ? { ...todo, note: { text: noteText, links: [] } }
+          : todo,
+      ),
+    );
+
     upsertNoteMutation.mutate(
       { todoId, text: noteText },
       {
         onSuccess: () => {
-          // Update local state immediately
-          setTodos((prevTodos) =>
-            prevTodos.map((todo) =>
-              todo.todoId === todoId
-                ? { ...todo, note: { text: noteText, links: [] } }
-                : todo,
-            ),
-          );
-          queryClient.invalidateQueries({ queryKey: ["todos", listName] });
+          reloadTodosList();
         },
         onError: (error) => {
+          setTodos(oldTodos);
+          showErrorBanner("Failed to edit note", REGULAR_TIMEOUT_BANNER);
           console.log("error", error);
-          reloadTodosList();
-          showErrorBanner("failed to edit note", REGULAR_TIMEOUT_BANNER);
         },
       },
     );
@@ -451,7 +459,7 @@ function TodosBase({ listName }: TodosProps) {
       {loadTodoData.isLoading && <p style={{ color: 'white'}}>loading...</p>}
       {loadTodoData.error && <p style={{ color: 'white'}}>{`Error: ${loadTodoData.error.message}`}</p>}
       {errorBanner && (
-        <Banner
+        <HeaderBanner
           message={errorBanner}
           onClose={() => setErrorBanner(null)}
         />
@@ -474,6 +482,7 @@ function TodosBase({ listName }: TodosProps) {
             .then(() => reloadTodosList())
             .catch((e) => {
               setTodos(oldTodos);
+              showErrorBanner("Failed to reorder tasks", REGULAR_TIMEOUT_BANNER);
               console.error("Error updating todos:", e);
             });
         }}

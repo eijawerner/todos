@@ -28,5 +28,10 @@ export const style = (props: ButtonProps) => `
 
   &:focus-visible {
       outline: 2px solid grey;
-  } 
+  }
+
+  &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+  }
 `;

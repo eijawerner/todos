@@ -13,7 +13,7 @@ import {
 } from "./components/TodoListSelector/TodoListSelector";
 import { Todos } from "./components/Todos/Todos";
 import { Button } from "../../common/components/Button/Button";
-import { Banner } from "../../common/components/Banner/Banner";
+import { HeaderBanner } from "../../common/components/HeaderBanner/HeaderBanner";
 import {
   fetchTodoLists,
   createTodoList,
@@ -52,7 +52,6 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
 
   const [selectedList, setSelectedList] = useState<string>(NONE_SELECTED);
   const [newListFormIsVisible, setNewListFormIsVisible] = useState(false);
-
   const addListMutation = useMutation({
     mutationFn: (name: string) => createTodoList(name),
     onSuccess: (_data, name) => {
@@ -60,7 +59,9 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
       queryClient.invalidateQueries({ queryKey: ["todoLists"] });
       setSelectedList(name);
     },
-    onError: (error) => console.log(error),
+    onError: (error) => {
+      console.error('failed to add list', error);
+    },
   });
 
   const deleteListMutation = useMutation({
@@ -70,12 +71,17 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
       setSelectedList(NONE_SELECTED);
       queryClient.invalidateQueries({ queryKey: ["todoLists"] });
     },
-    onError: (error) => console.error("failed to delete list", error),
+    onError: (error) => {
+      console.error('failed to delete list', error);
+    },
   });
 
   const [confirmDeleteDialogVisible, setConfirmDeleteDialogVisible] =
     React.useState(false);
-  const handleDeleteButtonClick = () => setConfirmDeleteDialogVisible(true);
+  const handleDeleteButtonClick = () => {
+    deleteListMutation.reset();
+    setConfirmDeleteDialogVisible(true);
+  };
 
   // Online state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -109,6 +115,7 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
   };
 
   const handleOpenNewListForm = () => {
+    addListMutation.reset();
     setNewListFormIsVisible(true);
   };
 
@@ -128,12 +135,13 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
         isVisible={newListFormIsVisible}
         onCreateTodoList={handleCreateTodoList}
         onCloseOverlayClick={handleCloseOverlayClick}
+        isLoading={addListMutation.isPending}
+        error={addListMutation.isError ? "Failed to create list" : null}
       />
 
       {!isOnline && (
-        <Banner message="Disconnected" />
+        <HeaderBanner message="Disconnected" />
       )}
-
       <StyledSelectListWrapper>
         <div style={{ marginRight: "2rem" }}>
           <Button
@@ -161,6 +169,8 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
         isVisible={confirmDeleteDialogVisible}
         deleteList={handleDeleteList}
         cancel={() => setConfirmDeleteDialogVisible(false)}
+        isLoading={deleteListMutation.isPending}
+        error={deleteListMutation.isError ? "Failed to delete list" : null}
       />
 
       {selectedList !== NONE_SELECTED && <Todos listName={selectedList} />}

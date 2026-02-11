@@ -9,6 +9,7 @@ export type ButtonProps = ButtonHTMLAttributes<any> &
     onClick?: () => void;
     size?: "regular" | "small";
     appearance?: "primary" | "secondary";
+    loading?: boolean;
   };
 function ButtonBase({
   text,
@@ -16,10 +17,12 @@ function ButtonBase({
   className,
   appearance = "secondary",
   size = "regular",
+  loading = false,
+  disabled,
 }: ButtonProps) {
   return (
-    <button className={className} onClick={onClick}>
-      {text}
+    <button className={className} onClick={onClick} disabled={disabled || loading}>
+      {loading ? "Loading..." : text}
     </button>
   );
 }

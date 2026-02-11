@@ -2,6 +2,7 @@ import React, { ChangeEvent, FormEvent, useState } from "react";
 import { Button } from "../../../../common/components/Button/Button";
 import styled from "styled-components";
 import { XMarkIcon } from "@heroicons/react/20/solid";
+import { ErrorBanner } from '../../../../common/components/ErrorBanner/ErrorBanner';
 
 type StyledOverlayProps = {
   $isVisible: boolean;
@@ -10,7 +11,7 @@ const StyledOverlay = styled.div<StyledOverlayProps>`
   opacity: ${(props) => (props.$isVisible ? 1 : 0)};
   pointer-events: ${(props) => (props.$isVisible ? "auto" : "none")};
   background: white;
-  padding: 1rem;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -58,17 +59,20 @@ type TodoListCreateFormProps = {
   isVisible: boolean;
   onCreateTodoList: (name: string) => void;
   onCloseOverlayClick: () => void;
+  isLoading?: boolean;
+  error?: string | null;
 };
 export function TodoListCreateForm({
   isVisible,
   onCreateTodoList,
   onCloseOverlayClick,
+  isLoading = false,
+  error = null,
 }: TodoListCreateFormProps) {
   const [listName, setListName] = useState("");
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     onCreateTodoList(listName);
-    setListName("");
   };
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
@@ -81,7 +85,8 @@ export function TodoListCreateForm({
           <StyledXMarkIcon />
         </StyledCloseButton>
       </StyledCloseButtonContainer>{" "}
-      {isVisible && (
+      {error && <ErrorBanner message={error} />}
+      {isVisible && !error && (
         <StyledForm onSubmit={handleSubmit} autoComplete="off">
           <label htmlFor="formName">List name:</label>
           <input
@@ -93,7 +98,7 @@ export function TodoListCreateForm({
             autoFocus={true}
           />
           <StyledButtonsContainer>
-            <Button text={"Add list"} type="submit" appearance={"primary"} />
+            <Button text={"Add list"} type="submit" appearance={"primary"} loading={isLoading} />
           </StyledButtonsContainer>
         </StyledForm>
       )}

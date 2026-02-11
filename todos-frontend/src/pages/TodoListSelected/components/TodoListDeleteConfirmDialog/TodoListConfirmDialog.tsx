@@ -2,6 +2,7 @@ import React from "react";
 import { Button } from "../../../../common/components/Button/Button";
 import styled from "styled-components";
 import { XMarkIcon } from "@heroicons/react/20/solid";
+import { ErrorBanner } from '../../../../common/components/ErrorBanner/ErrorBanner';
 
 type StyledOverlayProps = { $isVisible: boolean };
 const StyledOverlay = styled.div<StyledOverlayProps>`
@@ -55,12 +56,16 @@ type TodoListDeleteConfirmDialogProps = {
   isVisible: boolean;
   deleteList: () => void;
   cancel: () => void;
+  isLoading?: boolean;
+  error?: string | null;
 };
 export function TodoListDeleteConfirmDialog({
   listName,
   isVisible,
   deleteList,
   cancel,
+  isLoading = false,
+  error = null,
 }: TodoListDeleteConfirmDialogProps) {
   return (
     <StyledOverlay $isVisible={isVisible}>
@@ -69,11 +74,16 @@ export function TodoListDeleteConfirmDialog({
           <StyledXMarkIcon />
         </StyledCloseButton>
       </StyledCloseButtonContainer>
-      <StyledConfirmText>{`Are you sure you want to delete list ${listName}?`}</StyledConfirmText>
-      <StyledButtonsContainer>
-        <Button text={"cancel"} appearance={"secondary"} onClick={cancel} />
-        <Button text={"OK"} appearance={"primary"} onClick={deleteList} />
-      </StyledButtonsContainer>
+      {error && <ErrorBanner message={error} />}
+      {!error && (
+        <>
+          <StyledConfirmText>{`Are you sure you want to delete list ${listName}?`}</StyledConfirmText>
+          <StyledButtonsContainer>
+            <Button text={"cancel"} appearance={"secondary"} onClick={cancel} />
+            <Button text={"OK"} appearance={"primary"} onClick={deleteList} loading={isLoading} />
+          </StyledButtonsContainer>
+        </>
+      )}
     </StyledOverlay>
   );
 }

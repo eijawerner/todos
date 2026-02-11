@@ -66,6 +66,11 @@ export const TodoRow = ({
   const [taskText, setTaskText] = useState(todo.text);
   const debouncedText = useDebounce(taskText, 500);
 
+  // Sync local state when parent reverts on error
+  useEffect(() => {
+    setTaskText(todo.text);
+  }, [todo.text]);
+
   useEffect(() => {
     if (debouncedText === todo.text) return;
     saveTodo({

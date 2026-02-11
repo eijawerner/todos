@@ -1,0 +1,1 @@
+export const REGULAR_TIMEOUT_BANNER = 3000;

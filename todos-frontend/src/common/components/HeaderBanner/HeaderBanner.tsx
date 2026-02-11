@@ -2,7 +2,7 @@ import React from "react";
 import styled from "styled-components";
 import { COLOR_RED, COLOR_WHITE } from "../../contants/colors";
 
-const StyledBanner = styled.div`
+const StyledHeaderBanner = styled.div`
   position: fixed;
   top: 0;
   left: 0;
@@ -28,16 +28,16 @@ const StyledCloseButton = styled.button`
   cursor: pointer;
 `;
 
-type BannerProps = {
+type HeaderBannerProps = {
   message: string;
   onClose?: () => void;
 };
 
-export const Banner = ({ message, onClose }: BannerProps) => {
+export const HeaderBanner = ({ message, onClose }: HeaderBannerProps) => {
   return (
-    <StyledBanner>
+    <StyledHeaderBanner>
       {message}
       {onClose && <StyledCloseButton onClick={onClose}>✕</StyledCloseButton>}
-    </StyledBanner>
+    </StyledHeaderBanner>
   );
 };
