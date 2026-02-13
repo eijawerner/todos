@@ -1,5 +1,6 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { TodoNote } from "../../../../../../common/types/Models";
+import { useDebounce } from "../../../../../../common/hooks/useDebounce";
 import { Button } from "../../../../../../common/components/Button/Button";
 import styled from "styled-components";
 import {
@@ -77,24 +78,23 @@ type NoteProps = {
 };
 export const Note = ({ todoId, note, editNoteText, onClose }: NoteProps) => {
   const [noteText, setNoteText] = useState<string>(note.text);
+  const debouncedNoteText = useDebounce(noteText, 500);
 
-  const updateNoteText = (noteText: string) => {
-    setNoteText(noteText);
-  };
+  useEffect(() => {
+    if (debouncedNoteText === note.text) return;
+    editNoteText(todoId, debouncedNoteText);
+  }, [debouncedNoteText]);
 
-  const saveAndClose = useCallback(() => {
-    if (noteText === note.text) {
-      // no changes just return
-      onClose();
-      return;
+  const handleClose = useCallback(() => {
+    if (noteText !== note.text) {
+      editNoteText(todoId, noteText);
     }
-    editNoteText(todoId, noteText);
     onClose();
   }, [noteText, todoId]);
 
   return (
     <>
-      <Backdrop onClick={saveAndClose} />
+      <Backdrop onClick={handleClose} />
       <NoteContainer>
         <NoteFlexContainer>
           <NotesHeader>Notes</NotesHeader>
@@ -102,10 +102,10 @@ export const Note = ({ todoId, note, editNoteText, onClose }: NoteProps) => {
           <StyledTextArea
             autoFocus
             value={noteText}
-            onChange={(e) => updateNoteText(e.target.value)}
+            onChange={(e) => setNoteText(e.target.value)}
           />
           <ActionButtons>
-            <Button onClick={saveAndClose} text="Close" size="small" />
+            <Button onClick={handleClose} text="Close" size="small" />
           </ActionButtons>
         </NoteFlexContainer>
       </NoteContainer>
