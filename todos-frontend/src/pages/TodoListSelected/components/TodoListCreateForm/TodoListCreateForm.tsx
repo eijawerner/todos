@@ -1,58 +1,14 @@
 import React, { ChangeEvent, FormEvent, useState } from "react";
 import { Button } from "../../../../common/components/Button/Button";
 import styled from "styled-components";
-import { XMarkIcon } from "@heroicons/react/20/solid";
 import { ErrorBanner } from '../../../../common/components/ErrorBanner/ErrorBanner';
-
-type StyledOverlayProps = {
-  $isVisible: boolean;
-};
-const StyledOverlay = styled.div<StyledOverlayProps>`
-  opacity: ${(props) => (props.$isVisible ? 1 : 0)};
-  pointer-events: ${(props) => (props.$isVisible ? "auto" : "none")};
-  background: white;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  position: absolute;
-  top: 0.5rem;
-  width: 70vw;
-  z-index: 1;
-`;
+import { Dialog } from '../../../../common/components/Dialog/Dialog';
 
 const StyledForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   font-size: 1.6rem;
-`;
-
-const StyledButtonsContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  gap: 0.5rem;
-  justify-content: end;
-  padding-top: 1rem;
-`;
-
-const StyledCloseButtonContainer = styled.div`
-  position: absolute;
-  right: 0.5rem;
-  top: 0.5rem;
-`;
-
-const StyledCloseButton = styled.button`
-  cursor: pointer;
-  border: none;
-  border-radius: 50%;
-  font-size: 1.6rem;
-  background: none;
-`;
-
-const StyledXMarkIcon = styled(XMarkIcon)`
-  height: 20px;
-  width: 20px;
 `;
 
 type TodoListCreateFormProps = {
@@ -79,12 +35,7 @@ export function TodoListCreateForm({
     setListName(name);
   };
   return (
-    <StyledOverlay $isVisible={isVisible}>
-      <StyledCloseButtonContainer>
-        <StyledCloseButton onClick={onCloseOverlayClick}>
-          <StyledXMarkIcon />
-        </StyledCloseButton>
-      </StyledCloseButtonContainer>{" "}
+    <Dialog isVisible={isVisible} onClose={onCloseOverlayClick}>
       {error && <ErrorBanner message={error} />}
       {isVisible && !error && (
         <StyledForm onSubmit={handleSubmit} autoComplete="off">
@@ -97,11 +48,11 @@ export function TodoListCreateForm({
             style={{ fontSize: "1.6rem" }}
             autoFocus={true}
           />
-          <StyledButtonsContainer>
+          <Dialog.Actions>
             <Button text={"Add list"} type="submit" appearance={"primary"} loading={isLoading} />
-          </StyledButtonsContainer>
+          </Dialog.Actions>
         </StyledForm>
       )}
-    </StyledOverlay>
+    </Dialog>
   );
 }
