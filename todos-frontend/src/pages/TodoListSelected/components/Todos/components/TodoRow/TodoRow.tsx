@@ -1,10 +1,11 @@
 import { StyledProps, Todo } from "../../../../../../common/types/Models";
 import styled from "styled-components";
-import React, { ChangeEvent, useContext, useEffect, useState } from "react";
+import React, { ChangeEvent, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useDebounce } from "../../../../../../common/hooks/useDebounce";
+import { useClickOutside } from "../../../../../../common/hooks/useClickOutside";
 import { StyledCheckboxInput } from "../../../../../../common/components/Checkbox";
-import { COLOR_BLACK, COLOR_BEIGE_LIGHT } from "../../../../../../common/contants/colors";
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/20/solid";
+import { COLOR_BLACK, COLOR_BEIGE_LIGHT, COLOR_DARK_BLUE } from "../../../../../../common/contants/colors";
+import { EllipsisHorizontalIcon, PencilSquareIcon } from "@heroicons/react/20/solid";
 import { IconButton } from "../../../../../../common/components/IconButton/IconButton";
 import { DebugContext } from "../../../../../../App";
 
@@ -44,6 +45,54 @@ const StyledTodoRow = styled.div`
   gap: 0.5rem;
 `;
 
+const StyledMenuButton = styled(IconButton)`
+  background: transparent;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.1);
+    filter: none;
+  }
+
+  &:active {
+    background: rgba(0, 0, 0, 0.2);
+    filter: none;
+  }
+`;
+
+const StyledMenuWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const StyledMenu = styled.div`
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: rgba(0, 0, 0, 0.25) 0 4px 12px;
+  z-index: 10;
+  min-width: 10rem;
+  overflow: hidden;
+`;
+
+const StyledMenuItem = styled.button`
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: ${COLOR_DARK_BLUE};
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+`;
+
 export type TodoRowProps = StyledProps & {
   todo: Todo;
   deleteTodo: (id: string) => void;
@@ -64,6 +113,8 @@ export const TodoRow = ({
   inputRef,
 }: TodoRowProps) => {
   const [taskText, setTaskText] = useState(todo.text);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const debouncedText = useDebounce(taskText, 500);
 
   // Sync local state when parent reverts on error
@@ -80,6 +131,9 @@ export const TodoRow = ({
       order: todo.order,
     });
   }, [debouncedText]);
+
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  useClickOutside(menuRef, closeMenu);
 
   const debugEnabled = useContext(DebugContext);
 
@@ -127,9 +181,18 @@ export const TodoRow = ({
       >
         <PencilSquareIcon />
       </IconButton>
-      <IconButton onClick={() => deleteTodo(todo.todoId)}>
-        <TrashIcon />
-      </IconButton>
+      <StyledMenuWrapper ref={menuRef}>
+        <StyledMenuButton onClick={() => setMenuOpen(!menuOpen)}>
+          <EllipsisHorizontalIcon />
+        </StyledMenuButton>
+        {menuOpen && (
+          <StyledMenu>
+            <StyledMenuItem onClick={() => { deleteTodo(todo.todoId); setMenuOpen(false); }}>
+              Delete
+            </StyledMenuItem>
+          </StyledMenu>
+        )}
+      </StyledMenuWrapper>
     </StyledTodoRow>
   );
 };
