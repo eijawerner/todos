@@ -2,17 +2,18 @@ import React, { useCallback, useEffect, useState } from "react";
 import { TodoNote } from "../../../../../../common/types/Models";
 import { useDebounce } from "../../../../../../common/hooks/useDebounce";
 import { Button } from "../../../../../../common/components/Button/Button";
+import { Dialog } from "../../../../../../common/components/Dialog/Dialog";
 import styled from "styled-components";
 import {
   COLOR_BLACK,
   COLOR_DARK_BLUE,
-  COLOR_GREY_LIGHT,
 } from "../../../../../../common/contants/colors";
 
 const StyledTextArea = styled.textarea`
   flex-grow: 1;
+  min-height: 20vh;
+  max-height: 400px;
   border: none;
-  background-color: transparent;
   color: ${COLOR_BLACK};
   font-size: 1.6rem;
   padding: 0.5rem;
@@ -24,50 +25,11 @@ const StyledTextArea = styled.textarea`
   resize: none;
 `;
 
-const NoteContainer = styled.div`
-  position: absolute;
-  background: ${COLOR_GREY_LIGHT};
-  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
-  font-size: 1.5rem;
-  padding: 1rem;
-  top: 10rem;
-  width: 80vw;
-  height: 40vh;
-  max-width: 40rem;
-  flex-direction: column;
-  min-height: 20rem;
-  gap: 1rem;
-  border-radius: 6px;
-  z-index: 2;
-`;
-
-const NoteFlexContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  gap: 2rem;
-`;
-
 const NotesHeader = styled.h2`
   color: ${COLOR_DARK_BLUE};
   margin: 0;
   padding: 0;
-`;
-
-const ActionButtons = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-`;
-
-const Backdrop = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 1;
+  font-size: 2rem;
 `;
 
 type NoteProps = {
@@ -93,22 +55,17 @@ export const Note = ({ todoId, note, editNoteText, onClose }: NoteProps) => {
   }, [noteText, todoId]);
 
   return (
-    <>
-      <Backdrop onClick={handleClose} />
-      <NoteContainer>
-        <NoteFlexContainer>
-          <NotesHeader>Notes</NotesHeader>
-          {noteText === undefined && <span>undefined data</span>}
-          <StyledTextArea
-            autoFocus
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-          />
-          <ActionButtons>
-            <Button onClick={handleClose} text="Close" size="small" />
-          </ActionButtons>
-        </NoteFlexContainer>
-      </NoteContainer>
-    </>
+    <Dialog isVisible={true} onClose={handleClose}>
+      <NotesHeader>Notes</NotesHeader>
+      {noteText === undefined && <span>undefined data</span>}
+      <StyledTextArea
+        autoFocus
+        value={noteText}
+        onChange={(e) => setNoteText(e.target.value)}
+      />
+      <Dialog.Actions>
+        <Button onClick={handleClose} text="OK" size="small" />
+      </Dialog.Actions>
+    </Dialog>
   );
 };
