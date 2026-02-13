@@ -28,13 +28,20 @@ export function TodoListDeleteConfirmDialog({
 }: TodoListDeleteConfirmDialogProps) {
   return (
     <Dialog isVisible={isVisible} onClose={cancel}>
-      {error && <ErrorBanner message={error} />}
+      {error && (
+          <>
+            <ErrorBanner message={error} />
+            <Dialog.Actions>
+              <Button text={"Close"} appearance={"secondary"} onClick={cancel} />
+            </Dialog.Actions>
+          </>
+        )}
       {!error && (
         <>
           <StyledConfirmText>{`Are you sure you want to delete list ${listName}?`}</StyledConfirmText>
           <Dialog.Actions>
-            <Button text={"cancel"} appearance={"secondary"} onClick={cancel} />
-            <Button text={"OK"} appearance={"primary"} onClick={deleteList} loading={isLoading} />
+            <Button text={"Cancel"} appearance={"secondary"} onClick={cancel} />
+            <Button text={"Delete list"} appearance={"primary"} onClick={deleteList} loading={isLoading} />
           </Dialog.Actions>
         </>
       )}

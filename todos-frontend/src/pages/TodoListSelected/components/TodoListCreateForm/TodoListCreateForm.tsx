@@ -20,7 +20,7 @@ type TodoListCreateFormProps = {
   isVisible: boolean;
   existingListNames: string[];
   onCreateTodoList: (name: string) => void;
-  onCloseOverlayClick: () => void;
+  cancel: () => void;
   isLoading?: boolean;
   error?: string | null;
 };
@@ -28,7 +28,7 @@ export function TodoListCreateForm({
   isVisible,
   existingListNames,
   onCreateTodoList,
-  onCloseOverlayClick,
+  cancel,
   isLoading = false,
   error = null,
 }: TodoListCreateFormProps) {
@@ -54,8 +54,15 @@ export function TodoListCreateForm({
     setListName(name);
   };
   return (
-    <Dialog isVisible={isVisible} onClose={onCloseOverlayClick}>
-      {error && <ErrorBanner message={error} />}
+    <Dialog isVisible={isVisible} onClose={cancel}>
+      {error && (
+          <>
+            <ErrorBanner message={error} />
+            <Dialog.Actions>
+              <Button text={"Close"} appearance={"secondary"} onClick={cancel} />
+            </Dialog.Actions>
+          </>
+      )}
       {isVisible && !error && (
         <StyledForm onSubmit={handleSubmit} autoComplete="off">
           <label htmlFor="formName">List name</label>
@@ -71,6 +78,7 @@ export function TodoListCreateForm({
             <StyledWarning>A list with this name already exists</StyledWarning>
           )}
           <Dialog.Actions>
+            <Button text={"Cancel"} appearance={"secondary"} onClick={cancel} />
             <Button text={"Add list"} type="submit" appearance={"primary"} loading={isLoading} disabled={nameAlreadyExists || listName.trim() === ''} />
           </Dialog.Actions>
         </StyledForm>

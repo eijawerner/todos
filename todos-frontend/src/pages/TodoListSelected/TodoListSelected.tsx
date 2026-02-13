@@ -19,6 +19,7 @@ import {
   createTodoList,
   deleteTodoList,
 } from "../../api/todoApi";
+import { isAxiosError } from "axios";
 import { TodoListCreateForm } from "./components/TodoListCreateForm/TodoListCreateForm";
 import { TodoListDeleteConfirmDialog } from "./components/TodoListDeleteConfirmDialog/TodoListConfirmDialog";
 
@@ -31,6 +32,13 @@ const StyledSelectListWrapper = styled.div`
   gap: 0.5rem;
   align-items: center;
 `;
+
+const getErrorMessage = (error: Error, headerMessage: string): string => {
+  if (isAxiosError(error) && error.response?.data?.error) {
+    return `${headerMessage}: ${error.response.data.error}`;
+  }
+  return headerMessage;
+};
 
 const sortByListName = (l1: TodoListResponse, l2: TodoListResponse) => {
   const listName1 = l1.name.toLocaleLowerCase();
@@ -123,8 +131,6 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
     addListMutation.mutate(name);
   };
 
-  const handleCloseOverlayClick = () => setNewListFormIsVisible(false);
-
   const handleDeleteList = () => {
     deleteListMutation.mutate(selectedList);
   };
@@ -135,9 +141,9 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
         isVisible={newListFormIsVisible}
         existingListNames={todoLists.map((l) => l.name)}
         onCreateTodoList={handleCreateTodoList}
-        onCloseOverlayClick={handleCloseOverlayClick}
+        cancel={() => setNewListFormIsVisible(false)}
         isLoading={addListMutation.isPending}
-        error={addListMutation.isError ? "Failed to create list" : null}
+        error={addListMutation.isError ? getErrorMessage(addListMutation.error, "Failed to create list") : null}
       />
 
       {!isOnline && (
@@ -171,7 +177,7 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
         deleteList={handleDeleteList}
         cancel={() => setConfirmDeleteDialogVisible(false)}
         isLoading={deleteListMutation.isPending}
-        error={deleteListMutation.isError ? "Failed to delete list" : null}
+        error={deleteListMutation.isError ? getErrorMessage(deleteListMutation.error, "Failed to delete list") : null}
       />
 
       {selectedList !== NONE_SELECTED && <Todos listName={selectedList} />}

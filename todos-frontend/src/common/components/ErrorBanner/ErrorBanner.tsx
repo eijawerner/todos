@@ -5,7 +5,6 @@ import { ExclamationCircleIcon } from '@heroicons/react/16/solid';
 
 const StyledErrorBanner = styled.div`
   display: flex;
-  align-items: center;
   gap: 1rem;
   border-radius: 1rem;
   background: ${COLOR_RED};

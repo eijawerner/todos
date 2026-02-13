@@ -9,15 +9,16 @@ const StyledOverlay = styled.div<StyledOverlayProps>`
   opacity: ${(props) => (props.$isVisible ? 1 : 0)};
   pointer-events: ${(props) => (props.$isVisible ? "auto" : "none")};
   background: white;
+  border-radius: 1rem;
   padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   position: absolute;
-  top: 0.5rem;
+  top: 2.5rem;
   width: 70vw;
   z-index: 1;
-`;
+  box-shadow: rgba(100, 100, 111, 0.2) 0 7px 29px 0`;
 
 const StyledCloseButtonContainer = styled.div`
   position: absolute;
