@@ -417,6 +417,7 @@ function TodosBase({ listName }: TodosProps) {
       setNoteIsVisible({ todoId: todoId, note: existingNote });
     } catch (error) {
       console.error("failed fetching note", error);
+      showErrorBanner("Failed to load note", REGULAR_TIMEOUT_BANNER);
     }
   };
 

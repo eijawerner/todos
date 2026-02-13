@@ -1,7 +1,7 @@
 import React from "react";
 import styled from "styled-components";
 import { COLOR_RED, COLOR_WHITE } from "../../contants/colors";
-import { ExclamationCircleIcon } from '@heroicons/react/16/solid';
+import { ExclamationCircleIcon } from '@heroicons/react/24/solid';
 
 const StyledErrorBanner = styled.div`
   display: flex;

@@ -12,8 +12,8 @@ const StyledHeaderBanner = styled.div`
   color: ${COLOR_WHITE};
   text-align: center;
   padding: 0.5rem;
-  font-size: 1rem;
-  font-weight: bold;
+  font-size: 1.6rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 `;
 
 const StyledCloseButton = styled.button`

@@ -1,6 +1,6 @@
 import React, { ReactNode } from "react";
 import styled from "styled-components";
-import { XMarkIcon } from "@heroicons/react/20/solid";
+import { XMarkIcon } from "@heroicons/react/24/solid";
 
 type StyledOverlayProps = {
   $isVisible: boolean;
@@ -10,7 +10,7 @@ const StyledOverlay = styled.div<StyledOverlayProps>`
   pointer-events: ${(props) => (props.$isVisible ? "auto" : "none")};
   background: white;
   border-radius: 1rem;
-  padding: 2rem;
+  padding: 3rem 2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -22,8 +22,8 @@ const StyledOverlay = styled.div<StyledOverlayProps>`
 
 const StyledCloseButtonContainer = styled.div`
   position: absolute;
-  right: 0.5rem;
-  top: 0.5rem;
+  right: 1rem;
+  top: 1rem;
 `;
 
 const StyledCloseButton = styled.button`
@@ -34,8 +34,8 @@ const StyledCloseButton = styled.button`
 `;
 
 const StyledXMarkIcon = styled(XMarkIcon)`
-  height: 20px;
-  width: 20px;
+  height: 24px;
+  width: 24px;
 `;
 
 const StyledActions = styled.div`

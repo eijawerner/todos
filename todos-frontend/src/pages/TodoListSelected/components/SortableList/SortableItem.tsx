@@ -7,11 +7,8 @@ import type {
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-import { XMarkIcon } from "@heroicons/react/20/solid";
-
 import styled from "styled-components";
 import {
-  COLOR_DARK_BLUE,
   COLOR_GREY_LIGHT,
 } from "../../../../common/contants/colors";
 
