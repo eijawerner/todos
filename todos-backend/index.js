@@ -34,13 +34,20 @@ app.post("/api/todolists", async (req, res) => {
   const { name } = req.body;
   const session = driver.session();
   try {
+    const existing = await session.run(
+      `MATCH (tl:TodoList) WHERE toLower(tl.name) = toLower($name) RETURN tl.name AS name`,
+      { name },
+    );
+    if (existing.records.length > 0) {
+      return res.status(409).json({ error: "A list with this name already exists" });
+    }
     await session.run(
       `MATCH (u:User {name: "eijrik"})
        CREATE (tl:TodoList {name: $name})-[:CREATED_BY]->(u)
        RETURN tl.name AS name`,
       { name },
     );
-    res.json({ name });
+    return res.json({ name });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Failed to create todo list" });

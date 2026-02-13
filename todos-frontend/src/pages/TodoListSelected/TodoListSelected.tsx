@@ -133,6 +133,7 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
     <div className={className}>
       <TodoListCreateForm
         isVisible={newListFormIsVisible}
+        existingListNames={todoLists.map((l) => l.name)}
         onCreateTodoList={handleCreateTodoList}
         onCloseOverlayClick={handleCloseOverlayClick}
         isLoading={addListMutation.isPending}
