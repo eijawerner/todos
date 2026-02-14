@@ -1,6 +1,7 @@
 import { StyledProps, Todo } from "../../../../../../common/types/Models";
 import styled from "styled-components";
 import React, { ChangeEvent, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useDebounce } from "../../../../../../common/hooks/useDebounce";
 import { useClickOutside } from "../../../../../../common/hooks/useClickOutside";
 import { StyledCheckboxInput } from "../../../../../../common/components/Checkbox";
@@ -60,15 +61,14 @@ const StyledMenuButton = styled(IconButton)`
 `;
 
 const StyledMenuWrapper = styled.div`
-  position: relative;
   display: flex;
   align-items: center;
 `;
 
-const StyledMenu = styled.div`
-  position: absolute;
-  right: 0;
-  top: 100%;
+const StyledMenu = styled.div<{ $top: number; $right: number }>`
+  position: fixed;
+  top: ${({ $top }) => $top}px;
+  right: ${({ $right }) => $right}px;
   background: white;
   border-radius: 0.5rem;
   box-shadow: rgba(0, 0, 0, 0.25) 0 4px 12px;
@@ -114,7 +114,9 @@ export const TodoRow = ({
 }: TodoRowProps) => {
   const [taskText, setTaskText] = useState(todo.text);
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const menuDropdownRef = useRef<HTMLDivElement>(null);
+  const menuWrapperRef = useRef<HTMLDivElement>(null);
   const debouncedText = useDebounce(taskText, 500);
 
   // Sync local state when parent reverts on error
@@ -133,7 +135,7 @@ export const TodoRow = ({
   }, [debouncedText]);
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
-  useClickOutside(menuRef, closeMenu);
+  useClickOutside(menuDropdownRef, closeMenu);
 
   const debugEnabled = useContext(DebugContext);
 
@@ -153,6 +155,7 @@ export const TodoRow = ({
   };
 
   return (
+    <>
     <StyledTodoRow>
       <StyledCheckboxInput
         type="checkbox"
@@ -181,18 +184,32 @@ export const TodoRow = ({
       >
         <PencilSquareIcon />
       </IconButton>
-      <StyledMenuWrapper ref={menuRef}>
-        <StyledMenuButton onClick={() => setMenuOpen(!menuOpen)}>
+      <StyledMenuWrapper ref={menuWrapperRef}>
+        <StyledMenuButton
+          onClick={() => {
+            if (!menuOpen && menuWrapperRef.current) {
+              const rect = menuWrapperRef.current.getBoundingClientRect();
+              setMenuPos({ top: rect.bottom, right: window.innerWidth - rect.right });
+            }
+            setMenuOpen(!menuOpen);
+          }}
+        >
           <EllipsisHorizontalIcon />
         </StyledMenuButton>
-        {menuOpen && (
-          <StyledMenu>
-            <StyledMenuItem onClick={() => { deleteTodo(todo.todoId); setMenuOpen(false); }}>
-              Delete
-            </StyledMenuItem>
-          </StyledMenu>
-        )}
       </StyledMenuWrapper>
     </StyledTodoRow>
+    {menuOpen && createPortal(
+      <StyledMenu $top={menuPos.top} $right={menuPos.right} ref={menuDropdownRef}>
+        <StyledMenuItem onClick={
+          () => {
+            deleteTodo(todo.todoId); 
+            setMenuOpen(false);
+          }}>
+          Delete
+        </StyledMenuItem>
+      </StyledMenu>,
+      document.body
+    )}
+    </>
   );
 };
