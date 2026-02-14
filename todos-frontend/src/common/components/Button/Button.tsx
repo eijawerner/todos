@@ -8,7 +8,7 @@ export type ButtonProps = ButtonHTMLAttributes<any> &
     text: string;
     onClick?: () => void;
     size?: "regular" | "small";
-    appearance?: "primary" | "secondary";
+    appearance?: "primary" | "secondary" | "tertiary";
     loading?: boolean;
   };
 function ButtonBase({

@@ -27,7 +27,7 @@ import { useSwipeToDismiss } from "../../../../common/hooks/useSwipeToDismiss";
 import { Note } from "./components/Note/Note";
 import { SortableList } from "../SortableList/SortableList";
 import { HeaderBanner } from "../../../../common/components/HeaderBanner/HeaderBanner";
-import { REGULAR_TIMEOUT_BANNER } from '../../../../common/contants/numbers';
+import { REGULAR_TIMEOUT_BANNER, UNDO_DELETE_TIMEOUT } from '../../../../common/contants/numbers';
 import { TrashIcon } from '@heroicons/react/20/solid';
 
 export type TodosProps = StyledProps & {
@@ -107,6 +107,7 @@ function TodosBase({ listName }: TodosProps) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [changes, setChanges] = useState<ChangeRequest[]>([]);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const [deletedTodo, setDeletedTodo] = useState<Todo | null>(null);
   const [noteIsVisible, setNoteIsVisible] = useState<{
     todoId: string;
     note: TodoNote;
@@ -116,6 +117,8 @@ function TodosBase({ listName }: TodosProps) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deletePromiseRef = useRef<Promise<void> | null>(null);
 
   const showErrorBanner = (message: string, timeout?: number) => {
     if (errorTimeoutRef.current) {
@@ -315,7 +318,6 @@ function TodosBase({ listName }: TodosProps) {
       });
       setTodos(newTodos);
       updateTodoMutation.mutate({ ...todo }, {
-        onSuccess: () => reloadTodosList(),
         onError: (error) => {
           setTodos(oldTodos);
           showErrorBanner("Failed to edit task", REGULAR_TIMEOUT_BANNER);
@@ -367,7 +369,6 @@ function TodosBase({ listName }: TodosProps) {
           {
             onSuccess: () => {
               setFocusToTodo(newTodoItem.todoId);
-              reloadTodosList();
             },
             // Alert user and decide if want to retry or skip change?
             onError: (error) => {
@@ -397,22 +398,43 @@ function TodosBase({ listName }: TodosProps) {
 
   const handleDeleteTodo = (id: string) => {
     // remove locally first
+    const todoToDelete = todos.find((todo) => todo.todoId === id);
     const oldTodos = [...todos];
     setTodos(todos.filter((todo) => todo.todoId !== id));
 
+    // Clear any previous undo timeout
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+      undoTimeoutRef.current = null;
+    }
+
+    // Show undo banner immediately
+    if (todoToDelete) {
+      setDeletedTodo(todoToDelete);
+      undoTimeoutRef.current = setTimeout(() => {
+        setDeletedTodo(null);
+        undoTimeoutRef.current = null;
+      }, UNDO_DELETE_TIMEOUT);
+    }
+
     if (isOnline) {
-      deleteTodoMutation.mutate(id, {
-        onSuccess: () => {
-          reloadTodosList();
+      const deletePromise = deleteTodoMutation.mutateAsync(id)
+        .then(() => {
           console.log(`deleted todo with id=${id}`);
-        },
-        onError: (error) => {
+        })
+        .catch((error) => {
           setTodos(oldTodos);
+          setDeletedTodo(null);
+          if (undoTimeoutRef.current) {
+            clearTimeout(undoTimeoutRef.current);
+            undoTimeoutRef.current = null;
+          }
           showErrorBanner("Failed to delete task", REGULAR_TIMEOUT_BANNER);
           console.error('failed to delete task', error);
-        },
-      });
+        });
+      deletePromiseRef.current = deletePromise;
     } else {
+      deletePromiseRef.current = null;
       // Save for when online again
       console.log("add delete change");
       setChanges([
@@ -423,6 +445,47 @@ function TodosBase({ listName }: TodosProps) {
         },
       ]);
     }
+  };
+
+  const undoDelete = async () => {
+    if (!deletedTodo) return;
+
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+      undoTimeoutRef.current = null;
+    }
+
+    const todoToRestore = deletedTodo;
+    setDeletedTodo(null);
+
+    // Restore locally immediately
+    setTodos((prev) => getSortedTodos([...prev, todoToRestore]));
+
+    // Wait for the delete API call to finish before re-creating
+    if (deletePromiseRef.current) {
+      await deletePromiseRef.current;
+      deletePromiseRef.current = null;
+    }
+
+    // Re-create via API
+    createTodoMutation.mutate(
+      {
+        listName,
+        todo: {
+          text: todoToRestore.text,
+          todoId: todoToRestore.todoId,
+          checked: todoToRestore.checked,
+          order: todoToRestore.order,
+        },
+      },
+      {
+        onError: (error) => {
+          setTodos((prev) => prev.filter((t) => t.todoId !== todoToRestore.todoId));
+          showErrorBanner("Failed to restore task", REGULAR_TIMEOUT_BANNER);
+          console.error("failed to restore task", error);
+        },
+      },
+    );
   };
 
   const handleAddNote = async (todoId: string) => {
@@ -484,9 +547,6 @@ function TodosBase({ listName }: TodosProps) {
     upsertNoteMutation.mutate(
       { todoId, text: noteText },
       {
-        onSuccess: () => {
-          reloadTodosList();
-        },
         onError: (error) => {
           setTodos(oldTodos);
           showErrorBanner("Failed to edit note", REGULAR_TIMEOUT_BANNER);
@@ -512,6 +572,20 @@ function TodosBase({ listName }: TodosProps) {
         <HeaderBanner
           message={errorBanner}
           onClose={() => setErrorBanner(null)}
+        />
+      )}
+      {deletedTodo && (
+        <HeaderBanner
+          message="Task deleted"
+          mode="success"
+          action={{ label: "Undo", onClick: undoDelete }}
+          onClose={() => {
+            if (undoTimeoutRef.current) {
+              clearTimeout(undoTimeoutRef.current);
+              undoTimeoutRef.current = null;
+            }
+            setDeletedTodo(null);
+          }}
         />
       )}
       <SortableList

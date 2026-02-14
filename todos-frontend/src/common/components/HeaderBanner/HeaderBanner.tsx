@@ -1,16 +1,27 @@
 import React from "react";
 import styled from "styled-components";
-import { COLOR_RED, COLOR_WHITE } from "../../contants/colors";
+import { COLOR_GREEN, COLOR_RED, COLOR_WHITE } from "../../contants/colors";
+import { Button } from "../Button/Button";
 
-const StyledHeaderBanner = styled.div`
+type BannerMode = "danger" | "success";
+
+const BANNER_COLORS: Record<BannerMode, string> = {
+  danger: COLOR_RED,
+  success: COLOR_GREEN,
+};
+
+const StyledHeaderBanner = styled.div<{ $mode: BannerMode }>`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 10;
-  background: ${COLOR_RED};
+  background: ${({ $mode }) => BANNER_COLORS[$mode]};
   color: ${COLOR_WHITE};
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   padding: 0.5rem;
   font-size: 1.6rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -30,13 +41,23 @@ const StyledCloseButton = styled.button`
 
 type HeaderBannerProps = {
   message: string;
+  mode?: BannerMode;
   onClose?: () => void;
+  action?: { label: string; onClick: () => void };
 };
 
-export const HeaderBanner = ({ message, onClose }: HeaderBannerProps) => {
+export const HeaderBanner = ({ message, mode = "danger", onClose, action }: HeaderBannerProps) => {
   return (
-    <StyledHeaderBanner>
+    <StyledHeaderBanner $mode={mode}>
       {message}
+      {action && (
+        <Button
+          appearance="tertiary"
+          size="small"
+          text={action.label}
+          onClick={action.onClick}
+        />
+      )}
       {onClose && <StyledCloseButton onClick={onClose}>✕</StyledCloseButton>}
     </StyledHeaderBanner>
   );

@@ -1,1 +1,3 @@
 export const REGULAR_TIMEOUT_BANNER = 3000;
+
+export const UNDO_DELETE_TIMEOUT = 5000;
