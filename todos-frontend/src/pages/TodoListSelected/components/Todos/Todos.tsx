@@ -5,7 +5,7 @@ import {
   Todo,
   TodoNote,
 } from "../../../../common/types/Models";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, ReactNode, useRef } from "react";
 import { style } from "./Todos.style";
 import { TodoRow } from "./components/TodoRow/TodoRow";
 import { Button } from "../../../../common/components/Button/Button";
@@ -22,11 +22,13 @@ import {
   fetchTodoNote,
   upsertTodoNote,
 } from "../../../../api/todoApi";
-import { COLOR_GREY_LIGHT } from "../../../../common/contants/colors";
+import { COLOR_GREY_LIGHT, COLOR_RED, COLOR_WHITE } from "../../../../common/contants/colors";
+import { useSwipeToDismiss } from "../../../../common/hooks/useSwipeToDismiss";
 import { Note } from "./components/Note/Note";
 import { SortableList } from "../SortableList/SortableList";
 import { HeaderBanner } from "../../../../common/components/HeaderBanner/HeaderBanner";
 import { REGULAR_TIMEOUT_BANNER } from '../../../../common/contants/numbers';
+import { TrashIcon } from '@heroicons/react/20/solid';
 
 export type TodosProps = StyledProps & {
   listName: string;
@@ -42,9 +44,56 @@ const StyledTodoRowWrapper = styled.div`
   align-items: center;
   justify-content: flex-start;
   gap: 0.5rem;
-  padding: 0.5rem 0;
-  margin: 0 0.75rem;
+  padding: 0.5rem 0.75rem;
 `;
+
+const SwipeableRow= ({
+  onDelete,
+  children,
+}: {
+  onDelete: () => void;
+  children: ReactNode;
+}) => {
+  const { onTouchStart, onTouchMove, onTouchEnd, offsetX, isSwiping } =
+    useSwipeToDismiss(onDelete);
+
+  return (
+    <div style={{ position: "relative", width: "100%" }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: "100%",
+          background: COLOR_RED,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          paddingRight: "2rem",
+          color: COLOR_WHITE,
+          fontSize: "1.6rem",
+          borderRadius: "0.5rem"
+        }}
+      >
+          <TrashIcon style={{height: "24px"}} />
+      </div>
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          position: "relative",
+          transform: `translateX(${offsetX}px)`,
+          transition: isSwiping ? "none" : "transform 0.3s ease",
+          zIndex: 1,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const executeSequentially = (promiseFactories: any) => {
   let result = Promise.resolve();
@@ -66,7 +115,7 @@ function TodosBase({ listName }: TodosProps) {
   // Online state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  const errorTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showErrorBanner = (message: string, timeout?: number) => {
     if (errorTimeoutRef.current) {
@@ -179,7 +228,7 @@ function TodosBase({ listName }: TodosProps) {
     console.log("changes", changes);
   }, [changes]);
 
-  const todoRefs = React.useRef<Map<string, HTMLInputElement>>(new Map());
+  const todoRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   const getSortedTodos = (todoList: Todo[]) => {
     return [...todoList].sort((t1, t2) => {
@@ -489,25 +538,27 @@ function TodosBase({ listName }: TodosProps) {
         }}
         renderItem={(item) => (
           <SortableList.Item id={item.id}>
-            <StyledTodoRowWrapper>
-              <SortableList.DragHandle />
-              <TodoRow
-                key={item.id}
-                todo={item}
-                deleteTodo={handleDeleteTodo}
-                checkTodo={handleCheckTodo}
-                saveTodo={handleEditTodo}
-                addNewItem={() => handleAddTask(listName)}
-                viewNote={viewNote}
-                inputRef={(el) => {
-                  if (el) {
-                    todoRefs.current.set(item.todoId, el);
-                  } else {
-                    todoRefs.current.delete(item.todoId);
-                  }
-                }}
-              />
-            </StyledTodoRowWrapper>
+            <SwipeableRow onDelete={() => handleDeleteTodo(item.todoId)}>
+              <StyledTodoRowWrapper>
+                <SortableList.DragHandle />
+                <TodoRow
+                  key={item.id}
+                  todo={item}
+                  deleteTodo={handleDeleteTodo}
+                  checkTodo={handleCheckTodo}
+                  saveTodo={handleEditTodo}
+                  addNewItem={() => handleAddTask(listName)}
+                  viewNote={viewNote}
+                  inputRef={(el) => {
+                    if (el) {
+                      todoRefs.current.set(item.todoId, el);
+                    } else {
+                      todoRefs.current.delete(item.todoId);
+                    }
+                  }}
+                />
+              </StyledTodoRowWrapper>
+            </SwipeableRow>
           </SortableList.Item>
         )}
       />
