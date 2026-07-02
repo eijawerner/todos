@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import { RegularTodo, Todo, LabelTodo, TodoNote, Label, LabelItem } from "../common/types/Models";
+import { Todo, LabelTodo, TodoNote, Label, LabelItem } from "../common/types/Models";
 
 export const fetchTodoLists = async (): Promise<{ name: string }[]> => {
   const { data } = await apiClient.get("/api/todolists");
@@ -24,8 +24,15 @@ export const fetchTodos = async (listName: string): Promise<Todo[]> => {
 
 export const createTodo = async (
   listName: string,
-  todo: { text: string; todoId: string; checked: boolean; order: number },
-): Promise<RegularTodo> => {
+  // labelItemId makes the server create a LabelTodo linked to that label item
+  todo: {
+    text: string;
+    todoId: string;
+    checked: boolean;
+    order: number;
+    labelItemId?: string;
+  },
+): Promise<Todo> => {
   const { data } = await apiClient.post(
     `/api/todolists/${encodeURIComponent(listName)}/todos`,
     todo,

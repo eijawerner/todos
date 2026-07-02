@@ -60,11 +60,11 @@ it("renders label-todos read-only and regular todos as editable inputs", async (
   expect(textInputs[0]).toHaveValue("Milk");
 });
 
-// BUG: undoDelete restores any todo via createTodo (POST /api/todolists/:name/todos),
-// which creates a plain Todo node. For a label-todo this drops the SOURCED_FROM
-// link: the row becomes editable, stops following label item edits, and
-// re-importing the label duplicates the item.
-it("does not recreate a label-todo as a regular todo when undoing its deletion", async () => {
+// Restoring a label-todo must keep its link to the source label item.
+// A plain restore (no labelItemId) would create a regular Todo: the row
+// becomes editable, stops following label item edits, and re-importing
+// the label duplicates the item.
+it("restores a deleted label-todo with its label link intact when undoing", async () => {
   mocked.fetchTodos.mockResolvedValue([labelTodo]);
 
   renderTodos();
@@ -75,9 +75,10 @@ it("does not recreate a label-todo as a regular todo when undoing its deletion",
   expect(mocked.deleteTodo.mock.calls[0][0]).toBe("lt1");
 
   await userEvent.click(screen.getByRole("button", { name: "Undo" }));
-  await new Promise((resolve) => setTimeout(resolve, 50));
 
-  expect(mocked.createTodo).not.toHaveBeenCalled();
+  await waitFor(() => expect(mocked.createTodo).toHaveBeenCalled());
+  const [, restoredTodo] = mocked.createTodo.mock.calls[0];
+  expect(restoredTodo.labelItemId).toBe("li1");
 });
 
 // BUG (pre-existing, not from the labels work): handleDeleteTodo queues an

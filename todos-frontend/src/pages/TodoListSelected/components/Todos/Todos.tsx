@@ -154,7 +154,13 @@ function TodosBase({ listName }: TodosProps) {
   const createTodoMutation = useMutation({
     mutationFn: (params: {
       listName: string;
-      todo: { text: string; todoId: string; checked: boolean; order: number };
+      todo: {
+        text: string;
+        todoId: string;
+        checked: boolean;
+        order: number;
+        labelItemId?: string;
+      };
     }) => createTodo(params.listName, params.todo),
   });
 
@@ -443,6 +449,7 @@ function TodosBase({ listName }: TodosProps) {
       // Save for when online again
       console.log("add delete change");
       setChanges([
+        ...changes,
         {
           type: "delete",
           todo: { todoId: id, text: "", order: 0, checked: false },
@@ -472,7 +479,9 @@ function TodosBase({ listName }: TodosProps) {
       deletePromiseRef.current = null;
     }
 
-    // Re-create via API
+    // Re-create via API. A label-todo must be restored with its label link,
+    // or it would come back as a plain todo and re-importing the label
+    // would duplicate it.
     createTodoMutation.mutate(
       {
         listName,
@@ -481,6 +490,9 @@ function TodosBase({ listName }: TodosProps) {
           todoId: todoToRestore.todoId,
           checked: todoToRestore.checked,
           order: todoToRestore.order,
+          ...(isLabelTodo(todoToRestore)
+            ? { labelItemId: todoToRestore.labelItemId }
+            : {}),
         },
       },
       {

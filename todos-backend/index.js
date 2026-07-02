@@ -116,12 +116,35 @@ app.get("/api/todolists/:name/todos", async (req, res) => {
   }
 });
 
-// POST /api/todolists/:name/todos - create a new todo in a list
+// POST /api/todolists/:name/todos - create a new todo in a list.
+// With labelItemId in the body, a LabelTodo linked to that LabelItem is
+// created instead (used to restore a deleted label-todo via undo).
 app.post("/api/todolists/:name/todos", async (req, res) => {
   const { name } = req.params;
-  const { text, todoId, checked, order } = req.body;
+  const { text, todoId, checked, order, labelItemId } = req.body;
   const session = driver.session();
   try {
+    if (labelItemId != null) {
+      const result = await session.run(
+        `MATCH (tl:TodoList {name: $name})
+         MATCH (li:LabelItem {itemId: $labelItemId})
+         CREATE (lt:LabelTodo {todoId: $todoId, checked: $checked, order: $order})-[:BELONGS_TO]->(tl)
+         CREATE (lt)-[:SOURCED_FROM]->(li)
+         RETURN li.text AS text`,
+        { name, labelItemId, todoId, checked: checked ?? false, order },
+      );
+      if (result.records.length === 0) {
+        // The source label item no longer exists (e.g. label deleted meanwhile)
+        return res.status(404).json({ error: "Label item not found" });
+      }
+      return res.json({
+        todoId,
+        text: result.records[0].get("text"),
+        checked: checked ?? false,
+        order,
+        labelItemId,
+      });
+    }
     await session.run(
       `MATCH (tl:TodoList {name: $name})
        CREATE (t:Todo {todoId: $todoId, text: $text, checked: $checked, order: $order})-[:BELONGS_TO]->(tl)

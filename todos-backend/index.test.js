@@ -36,6 +36,49 @@ describe("GET /api/labels", () => {
   });
 });
 
+describe("POST /api/todolists/:name/todos", () => {
+  it("creates a LabelTodo linked to the label item when labelItemId is given", async () => {
+    mockRun.mockResolvedValueOnce({ records: [record({ text: "Tent" })] });
+
+    const res = await request(app)
+      .post("/api/todolists/Trip/todos")
+      .send({ todoId: "lt1", checked: true, order: 2, labelItemId: "li1" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      todoId: "lt1",
+      text: "Tent",
+      checked: true,
+      order: 2,
+      labelItemId: "li1",
+    });
+    expect(mockRun.mock.calls[0][0]).toContain("LabelTodo");
+    expect(mockRun.mock.calls[0][0]).toContain("SOURCED_FROM");
+  });
+
+  it("responds 404 when the source label item no longer exists", async () => {
+    mockRun.mockResolvedValueOnce(emptyResult);
+
+    const res = await request(app)
+      .post("/api/todolists/Trip/todos")
+      .send({ todoId: "lt1", checked: false, order: 2, labelItemId: "gone" });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("creates a regular Todo when no labelItemId is given", async () => {
+    mockRun.mockResolvedValueOnce({ records: [record({})] });
+
+    const res = await request(app)
+      .post("/api/todolists/Trip/todos")
+      .send({ todoId: "t1", text: "Milk", checked: false, order: 1 });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ todoId: "t1", text: "Milk", checked: false, order: 1 });
+    expect(mockRun.mock.calls[0][0]).not.toContain("LabelTodo");
+  });
+});
+
 describe("PUT /api/todos/:todoId", () => {
   it("falls back to updating a LabelTodo when no Todo matches", async () => {
     mockRun
