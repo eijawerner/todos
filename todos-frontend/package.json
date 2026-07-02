@@ -9,6 +9,7 @@
     "build": "vite build",
     "ts-compile": "yarn tsc --noEmit",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "start": "yarn ts-compile && vite",
     "serve:prod": "serve --single dist --listen 3060"
   },
@@ -23,6 +24,7 @@
     "@types/react-dom": "18.3.0",
     "@types/styled-components": "5.1.36",
     "@vitejs/plugin-react": "5.1.2",
+    "@vitest/coverage-v8": "^4.1.9",
     "jsdom": "^29.1.1",
     "prettier": "3.8.1",
     "typescript": "4.9.5",

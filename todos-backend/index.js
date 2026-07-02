@@ -410,14 +410,20 @@ app.post("/api/labels/:labelId/items", async (req, res) => {
 app.put("/api/labels/:labelId/items/:itemId", async (req, res) => {
   const { itemId } = req.params;
   const { text } = req.body;
+  if (typeof text !== "string" || text.trim() === "") {
+    return res.status(400).json({ error: "Item text is required" });
+  }
   const session = driver.session();
   try {
-    await session.run(
+    const result = await session.run(
       `MATCH (li:LabelItem {itemId: $itemId})
        SET li.text = $text
        RETURN li`,
       { itemId, text },
     );
+    if (result.records.length === 0) {
+      return res.status(404).json({ error: "Label item not found" });
+    }
     res.json({ itemId, text });
   } catch (e) {
     console.error(e);

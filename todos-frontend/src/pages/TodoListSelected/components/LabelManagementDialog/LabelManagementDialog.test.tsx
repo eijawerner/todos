@@ -38,6 +38,80 @@ it("lists labels with their item counts", async () => {
   expect(screen.getByText("2 items")).toBeInTheDocument();
 });
 
+it("creates a label and refreshes the label list", async () => {
+  mocked.createLabel.mockResolvedValue({ labelId: "l2", name: "Trips", itemCount: 0 });
+  const { invalidateSpy } = renderDialog();
+
+  await userEvent.type(
+    await screen.findByPlaceholderText("New label name..."),
+    "Trips",
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Create" }));
+
+  await waitFor(() => expect(mocked.createLabel).toHaveBeenCalledWith("Trips"));
+  await waitFor(() =>
+    expect(
+      invalidateSpy.mock.calls.some(([filters]) => filters?.queryKey?.[0] === "labels"),
+    ).toBe(true),
+  );
+});
+
+it("drills into a label and adds an item", async () => {
+  mocked.fetchLabelItems.mockResolvedValue([{ itemId: "i1", text: "Socks" }]);
+  mocked.addLabelItem.mockResolvedValue({ itemId: "i2", text: "Hat" });
+  renderDialog();
+
+  await userEvent.click(await screen.findByText("Packing"));
+
+  expect(await screen.findByText("Socks")).toBeInTheDocument();
+
+  await userEvent.type(screen.getByPlaceholderText("New item..."), "Hat");
+  await userEvent.click(screen.getByRole("button", { name: "Add" }));
+
+  await waitFor(() => expect(mocked.addLabelItem).toHaveBeenCalledWith("l1", "Hat"));
+});
+
+it("edits an item by clicking its text", async () => {
+  mocked.fetchLabelItems.mockResolvedValue([{ itemId: "i1", text: "Socks" }]);
+  mocked.editLabelItem.mockResolvedValue({ itemId: "i1", text: "Wool socks" });
+  renderDialog();
+
+  await userEvent.click(await screen.findByText("Packing"));
+  await userEvent.click(await screen.findByText("Socks"));
+
+  const editInput = screen.getByDisplayValue("Socks");
+  await userEvent.clear(editInput);
+  await userEvent.type(editInput, "Wool socks{Enter}");
+
+  await waitFor(() =>
+    expect(mocked.editLabelItem).toHaveBeenCalledWith("l1", "i1", "Wool socks"),
+  );
+});
+
+it("deletes an item from a label", async () => {
+  mocked.fetchLabelItems.mockResolvedValue([{ itemId: "i1", text: "Socks" }]);
+  mocked.deleteLabelItem.mockResolvedValue(undefined);
+  renderDialog();
+
+  await userEvent.click(await screen.findByText("Packing"));
+  const itemRow = (await screen.findByText("Socks")).closest("div")!;
+  await userEvent.click(within(itemRow).getByRole("button"));
+
+  await waitFor(() => expect(mocked.deleteLabelItem).toHaveBeenCalledWith("l1", "i1"));
+});
+
+it("returns to the label list from the back button", async () => {
+  mocked.fetchLabelItems.mockResolvedValue([]);
+  renderDialog();
+
+  await userEvent.click(await screen.findByText("Packing"));
+  await screen.findByText(/no items yet/i);
+
+  await userEvent.click(screen.getByText("All labels"));
+
+  expect(await screen.findByText("2 items")).toBeInTheDocument();
+});
+
 // BUG: deleting a label cascades to its LabelTodos on the server, but only
 // the ["labels"] query is invalidated. An open todo list keeps showing rows
 // that no longer exist ("ghost rows") until a manual sync.

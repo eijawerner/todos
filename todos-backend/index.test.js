@@ -154,3 +154,254 @@ describe("POST /api/labels/:labelId/items", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("GET /api/todolists", () => {
+  it("returns the todo lists", async () => {
+    mockRun.mockResolvedValueOnce({
+      records: [record({ name: "Trip" }), record({ name: "Home" })],
+    });
+
+    const res = await request(app).get("/api/todolists");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([{ name: "Trip" }, { name: "Home" }]);
+  });
+
+  it("responds 500 when the database query fails", async () => {
+    mockRun.mockRejectedValueOnce(new Error("db down"));
+
+    const res = await request(app).get("/api/todolists");
+
+    expect(res.status).toBe(500);
+  });
+});
+
+describe("POST /api/todolists", () => {
+  it("creates a list", async () => {
+    mockRun
+      .mockResolvedValueOnce(emptyResult) // duplicate-name check
+      .mockResolvedValueOnce({ records: [record({ name: "Trip" })] });
+
+    const res = await request(app).post("/api/todolists").send({ name: "Trip" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ name: "Trip" });
+  });
+
+  it("responds 409 when a list with the same name exists", async () => {
+    mockRun.mockResolvedValueOnce({ records: [record({ name: "trip" })] });
+
+    const res = await request(app).post("/api/todolists").send({ name: "Trip" });
+
+    expect(res.status).toBe(409);
+  });
+});
+
+describe("DELETE /api/todolists/:name", () => {
+  it("deletes the list", async () => {
+    mockRun.mockResolvedValueOnce(emptyResult);
+
+    const res = await request(app).delete("/api/todolists/Trip");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true });
+    expect(mockRun.mock.calls[0][1]).toEqual({ name: "Trip" });
+  });
+});
+
+describe("GET /api/todolists/:name/todos", () => {
+  it("maps regular todos, label-todos, notes and neo4j integers", async () => {
+    mockRun.mockResolvedValueOnce({
+      records: [
+        record({
+          todoId: "t1",
+          text: "Milk",
+          checked: false,
+          order: { toNumber: () => 1 }, // neo4j Integer
+          noteText: "2% fat",
+          labelItemId: null,
+        }),
+        record({
+          todoId: "lt1",
+          text: "Tent",
+          checked: true,
+          order: 2,
+          noteText: null,
+          labelItemId: "li1",
+        }),
+      ],
+    });
+
+    const res = await request(app).get("/api/todolists/Trip/todos");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([
+      { todoId: "t1", text: "Milk", checked: false, order: 1, note: { text: "2% fat" } },
+      { todoId: "lt1", text: "Tent", checked: true, order: 2, labelItemId: "li1" },
+    ]);
+  });
+});
+
+describe("DELETE /api/todos/:todoId", () => {
+  it("deletes a todo", async () => {
+    mockRun.mockResolvedValueOnce(emptyResult);
+
+    const res = await request(app).delete("/api/todos/t1");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true });
+  });
+});
+
+describe("DELETE /api/todos (bulk)", () => {
+  it("deletes all given todoIds", async () => {
+    mockRun.mockResolvedValueOnce(emptyResult);
+
+    const res = await request(app)
+      .delete("/api/todos")
+      .send({ todoIds: ["a", "b"] });
+
+    expect(res.status).toBe(200);
+    expect(mockRun.mock.calls[0][1]).toEqual({ todoIds: ["a", "b"] });
+  });
+});
+
+describe("GET /api/todos/:todoId/note", () => {
+  it("returns the note text", async () => {
+    mockRun.mockResolvedValueOnce({ records: [record({ text: "2% fat" })] });
+
+    const res = await request(app).get("/api/todos/t1/note");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ text: "2% fat" });
+  });
+
+  it("returns null when the todo has no note", async () => {
+    mockRun.mockResolvedValueOnce(emptyResult);
+
+    const res = await request(app).get("/api/todos/t1/note");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toBeNull();
+  });
+});
+
+describe("PUT /api/todos/:todoId/note", () => {
+  it("upserts and echoes the note text", async () => {
+    mockRun.mockResolvedValueOnce(emptyResult);
+
+    const res = await request(app)
+      .put("/api/todos/t1/note")
+      .send({ text: "hello" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ text: "hello" });
+    expect(mockRun.mock.calls[0][1]).toEqual({ todoId: "t1", text: "hello" });
+  });
+});
+
+describe("DELETE /api/labels/:labelId", () => {
+  it("deletes the label, its items and their sourced label-todos", async () => {
+    mockRun.mockResolvedValueOnce(emptyResult);
+
+    const res = await request(app).delete("/api/labels/l1");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true });
+    expect(mockRun.mock.calls[0][0]).toContain("LabelTodo");
+  });
+});
+
+describe("GET /api/labels/:labelId/items", () => {
+  it("returns the items of a label", async () => {
+    mockRun.mockResolvedValueOnce({
+      records: [record({ itemId: "i1", text: "Socks" })],
+    });
+
+    const res = await request(app).get("/api/labels/l1/items");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([{ itemId: "i1", text: "Socks" }]);
+  });
+});
+
+describe("PUT /api/labels/:labelId/items/:itemId", () => {
+  it("updates the item text", async () => {
+    mockRun.mockResolvedValueOnce({ records: [record({})] });
+
+    const res = await request(app)
+      .put("/api/labels/l1/items/i1")
+      .send({ text: "Wool socks" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ itemId: "i1", text: "Wool socks" });
+  });
+
+  it("responds 400 when text is blank", async () => {
+    mockRun.mockResolvedValue(emptyResult);
+
+    const res = await request(app).put("/api/labels/l1/items/i1").send({ text: " " });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("responds 404 when the item does not exist", async () => {
+    mockRun.mockResolvedValueOnce(emptyResult);
+
+    const res = await request(app)
+      .put("/api/labels/l1/items/ghost")
+      .send({ text: "Wool socks" });
+
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("DELETE /api/labels/:labelId/items/:itemId", () => {
+  it("deletes the item and its sourced label-todos", async () => {
+    mockRun.mockResolvedValueOnce(emptyResult);
+
+    const res = await request(app).delete("/api/labels/l1/items/i1");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true });
+    expect(mockRun.mock.calls[0][0]).toContain("LabelTodo");
+  });
+});
+
+describe("POST /api/todolists/:name/import-label", () => {
+  it("appends imported items after the current max order", async () => {
+    mockRun
+      .mockResolvedValueOnce({
+        records: [record({ maxOrder: { toNumber: () => 5 } })],
+      })
+      .mockResolvedValueOnce({
+        records: [
+          record({ todoId: "x1", text: "Tent", order: 6, labelItemId: "li1" }),
+        ],
+      });
+
+    const res = await request(app)
+      .post("/api/todolists/Trip/import-label")
+      .send({ labelId: "l1" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([
+      { todoId: "x1", text: "Tent", order: 6, checked: false, labelItemId: "li1" },
+    ]);
+    expect(mockRun.mock.calls[1][1].nextOrder).toBe(6);
+  });
+
+  it("starts at order 1 in an empty list", async () => {
+    mockRun
+      .mockResolvedValueOnce({ records: [record({ maxOrder: null })] })
+      .mockResolvedValueOnce(emptyResult);
+
+    const res = await request(app)
+      .post("/api/todolists/Trip/import-label")
+      .send({ labelId: "l1" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+    expect(mockRun.mock.calls[1][1].nextOrder).toBe(1);
+  });
+});

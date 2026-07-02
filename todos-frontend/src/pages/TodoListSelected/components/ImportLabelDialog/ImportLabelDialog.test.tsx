@@ -45,10 +45,39 @@ it("only offers labels that have items", async () => {
   expect(screen.queryByText("Empty")).not.toBeInTheDocument();
 });
 
-// BUG: labels import sequentially inside one mutation. If the second import
-// fails after the first succeeded, onSuccess never runs: the todo list is not
-// reloaded even though the first label's items WERE created server-side, and
-// the user only sees a generic failure.
+it("imports the selected label and reports how many items were added", async () => {
+  mocked.importLabelToList.mockResolvedValue([
+    { todoId: "t1", text: "Tent", checked: false, order: 1, labelItemId: "li1" },
+  ]);
+  const { onImported } = renderDialog();
+
+  const campingRow = await screen.findByText("Camping");
+  const importButton = screen.getByRole("button", { name: "Import" });
+  expect(importButton).toBeDisabled(); // nothing selected yet
+
+  await userEvent.click(campingRow);
+  await userEvent.click(importButton);
+
+  await waitFor(() =>
+    expect(mocked.importLabelToList).toHaveBeenCalledWith("Trip", "a"),
+  );
+  expect(await screen.findByText("Added 1 item to list")).toBeInTheDocument();
+  expect(onImported).toHaveBeenCalled();
+});
+
+it("tells the user when everything was already imported", async () => {
+  mocked.importLabelToList.mockResolvedValue([]);
+  renderDialog();
+
+  await userEvent.click(await screen.findByText("Camping"));
+  await userEvent.click(screen.getByRole("button", { name: "Import" }));
+
+  expect(await screen.findByText("All items already in list")).toBeInTheDocument();
+});
+
+// Regression test: labels import sequentially inside one mutation, so a later
+// failure can leave earlier labels' items created server-side. The list must
+// refresh even then (handled via onSettled).
 it("refreshes the list when an import partially fails", async () => {
   mocked.importLabelToList.mockImplementation(async (_listName, labelId) => {
     if (labelId === "a") {
