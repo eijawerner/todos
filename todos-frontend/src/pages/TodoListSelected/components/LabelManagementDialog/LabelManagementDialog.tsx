@@ -41,7 +41,8 @@ const StyledInput = styled.input`
   border: 1px solid ${COLOR_BEIGE};
   background: white;
   color: ${COLOR_BLACK};
-  font-size: 1.4rem;
+  /* Minimum 16px (1.6rem) - smaller font sizes make iOS Safari zoom in when the input gets focus */
+  font-size: 1.6rem;
   padding: 0.5rem 0.75rem;
   border-radius: 0.4rem;
 
@@ -107,7 +108,8 @@ const StyledEditInput = styled.input`
   border: 1px solid ${COLOR_BEIGE};
   background: white;
   color: ${COLOR_BLACK};
-  font-size: 1.4rem;
+  /* Minimum 16px (1.6rem) - smaller font sizes make iOS Safari zoom in when the input gets focus */
+  font-size: 1.6rem;
   padding: 0.4rem 0.6rem;
   border-radius: 0.4rem;
 
