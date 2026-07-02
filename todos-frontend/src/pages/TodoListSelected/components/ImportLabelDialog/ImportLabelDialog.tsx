@@ -109,6 +109,10 @@ export function ImportLabelDialog({
     },
     onSuccess: (count) => {
       setImportedCount(count);
+    },
+    // Imports run sequentially, so earlier labels may have been created even
+    // if a later one failed - the open list must refresh either way
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["todos", listName] });
       onImported();
     },

@@ -1,4 +1,5 @@
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { isAxiosError } from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import styled from "styled-components";
 import { Dialog } from "../../../../common/components/Dialog/Dialog";
@@ -181,6 +182,9 @@ export function LabelManagementDialog({
     mutationFn: (labelId: string) => deleteLabel(labelId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["labels"] });
+      // The server cascade-deletes LabelTodos sourced from this label,
+      // so any open todo list must refetch or it keeps showing ghost rows
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
     },
   });
 
@@ -199,6 +203,8 @@ export function LabelManagementDialog({
     onSuccess: () => {
       setEditingItemId(null);
       queryClient.invalidateQueries({ queryKey: ["labelItems", selectedLabel?.labelId] });
+      // Item text is shared with every list the label was imported into
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
     },
   });
 
@@ -207,6 +213,8 @@ export function LabelManagementDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["labelItems", selectedLabel?.labelId] });
       queryClient.invalidateQueries({ queryKey: ["labels"] });
+      // The server cascade-deletes LabelTodos sourced from this item
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
     },
   });
 
@@ -235,12 +243,28 @@ export function LabelManagementDialog({
   const labels: Label[] = labelsQuery.data ?? [];
   const labelItems: LabelItem[] = labelItemsQuery.data ?? [];
 
+  const createLabelErrorMessage =
+    isAxiosError(createLabelMutation.error) &&
+    createLabelMutation.error.response?.status === 409
+      ? "A label with this name already exists"
+      : "Failed to create label";
+
   if (!isVisible) return null;
 
   return (
     <Dialog isVisible={isVisible} onClose={onClose}>
       {createLabelMutation.isError && (
-        <ErrorBanner message="Failed to create label" />
+        <ErrorBanner message={createLabelErrorMessage} />
+      )}
+      {deleteLabelMutation.isError && (
+        <ErrorBanner message="Failed to delete label" />
+      )}
+      {addItemMutation.isError && <ErrorBanner message="Failed to add item" />}
+      {editItemMutation.isError && (
+        <ErrorBanner message="Failed to update item" />
+      )}
+      {deleteItemMutation.isError && (
+        <ErrorBanner message="Failed to delete item" />
       )}
 
       {selectedLabel ? (

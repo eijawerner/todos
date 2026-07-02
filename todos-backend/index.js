@@ -150,12 +150,15 @@ app.put("/api/todos/:todoId", async (req, res) => {
       { todoId, text, checked, order },
     );
     if (todoResult.records.length === 0) {
-      await session.run(
+      const labelTodoResult = await session.run(
         `MATCH (lt:LabelTodo {todoId: $todoId})
          SET lt.checked = $checked, lt.order = $order
          RETURN lt.todoId AS todoId`,
         { todoId, checked, order },
       );
+      if (labelTodoResult.records.length === 0) {
+        return res.status(404).json({ error: "Todo not found" });
+      }
     }
     res.json({ todoId, text, checked, order });
   } catch (e) {
@@ -283,6 +286,9 @@ app.get("/api/labels", async (req, res) => {
 // POST /api/labels - create a label
 app.post("/api/labels", async (req, res) => {
   const { name } = req.body;
+  if (typeof name !== "string" || name.trim() === "") {
+    return res.status(400).json({ error: "Label name is required" });
+  }
   const session = driver.session();
   try {
     const existing = await session.run(
@@ -356,6 +362,9 @@ app.get("/api/labels/:labelId/items", async (req, res) => {
 app.post("/api/labels/:labelId/items", async (req, res) => {
   const { labelId } = req.params;
   const { text } = req.body;
+  if (typeof text !== "string" || text.trim() === "") {
+    return res.status(400).json({ error: "Item text is required" });
+  }
   const itemId = crypto.randomUUID();
   const session = driver.session();
   try {
