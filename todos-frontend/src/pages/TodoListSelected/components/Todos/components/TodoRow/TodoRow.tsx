@@ -1,12 +1,12 @@
-import { StyledProps, Todo } from "../../../../../../common/types/Models";
+import { StyledProps, Todo, isLabelTodo } from "../../../../../../common/types/Models";
 import styled from "styled-components";
 import React, { ChangeEvent, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDebounce } from "../../../../../../common/hooks/useDebounce";
 import { useClickOutside } from "../../../../../../common/hooks/useClickOutside";
 import { StyledCheckboxInput } from "../../../../../../common/components/Checkbox";
-import { COLOR_BLACK, COLOR_BEIGE_LIGHT, COLOR_DARK_BLUE } from "../../../../../../common/contants/colors";
-import { EllipsisHorizontalIcon, PencilSquareIcon } from "@heroicons/react/20/solid";
+import { COLOR_BLACK, COLOR_BEIGE_LIGHT, COLOR_BEIGE, COLOR_DARK_BLUE } from "../../../../../../common/contants/colors";
+import { EllipsisHorizontalIcon, PencilSquareIcon, TagIcon } from "@heroicons/react/20/solid";
 import { IconButton } from "../../../../../../common/components/IconButton/IconButton";
 import { DebugContext } from "../../../../../../App";
 
@@ -30,6 +30,24 @@ const StyledTextInput = styled.input<{ checked: boolean }>`
     background: white;
   }
   text-decoration: ${(props) => (props.checked ? "line-through;" : undefined)};
+`;
+
+const StyledReadOnlyText = styled.span<{ checked: boolean }>`
+  flex-grow: 1;
+  color: ${COLOR_BLACK};
+  font-size: 1.6rem;
+  padding: 0.5rem;
+  text-decoration: ${(props) => (props.checked ? "line-through" : "none")};
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+`;
+
+const StyledLabelIcon = styled(TagIcon)`
+  height: 14px;
+  width: 14px;
+  color: ${COLOR_BEIGE};
+  flex-shrink: 0;
 `;
 
 const StyledDebugOrderText = styled.span`
@@ -118,19 +136,18 @@ export const TodoRow = ({
   const menuDropdownRef = useRef<HTMLDivElement>(null);
   const menuWrapperRef = useRef<HTMLDivElement>(null);
   const debouncedText = useDebounce(taskText, 500);
+  const isLabel = isLabelTodo(todo);
 
-  // Sync local state when parent reverts on error
   useEffect(() => {
     setTaskText(todo.text);
   }, [todo.text]);
 
   useEffect(() => {
+    if (isLabel) return;
     if (debouncedText === todo.text) return;
     saveTodo({
-      todoId: todo.todoId,
+      ...todo,
       text: debouncedText,
-      checked: todo.checked,
-      order: todo.order,
     });
   }, [debouncedText]);
 
@@ -165,16 +182,23 @@ export const TodoRow = ({
         value={todo.text}
         onChange={handleClickCheckbox}
       />
-      <StyledTextInput
-        type="text"
-        id={`task_text_${todo.text}`}
-        value={taskText}
-        onChange={handleTextInputChange}
-        onKeyUp={handleKeywordKeyPress}
-        ref={inputRef}
-        checked={todo.checked}
-        autoComplete="false"
-      />
+      {isLabel ? (
+        <StyledReadOnlyText checked={todo.checked}>
+          <StyledLabelIcon />
+          {todo.text}
+        </StyledReadOnlyText>
+      ) : (
+        <StyledTextInput
+          type="text"
+          id={`task_text_${todo.text}`}
+          value={taskText}
+          onChange={handleTextInputChange}
+          onKeyUp={handleKeywordKeyPress}
+          ref={inputRef}
+          checked={todo.checked}
+          autoComplete="false"
+        />
+      )}
       {debugEnabled && (
         <StyledDebugOrderText>{todo.order}</StyledDebugOrderText>
       )}

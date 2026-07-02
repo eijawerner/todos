@@ -22,6 +22,7 @@ import {
 import { isAxiosError } from "axios";
 import { TodoListCreateForm } from "./components/TodoListCreateForm/TodoListCreateForm";
 import { TodoListDeleteConfirmDialog } from "./components/TodoListDeleteConfirmDialog/TodoListConfirmDialog";
+import { LabelManagementDialog } from "./components/LabelManagementDialog/LabelManagementDialog";
 
 type TodoListProps = StyledProps & {};
 
@@ -91,6 +92,8 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
     setConfirmDeleteDialogVisible(true);
   };
 
+  const [labelDialogVisible, setLabelDialogVisible] = useState(false);
+
   // Online state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -149,12 +152,23 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
       {!isOnline && (
         <HeaderBanner message="Disconnected" />
       )}
+      <LabelManagementDialog
+        isVisible={labelDialogVisible}
+        onClose={() => setLabelDialogVisible(false)}
+      />
+
       <StyledSelectListWrapper>
-        <div style={{ marginRight: "2rem" }}>
+        <div style={{ marginRight: "2rem", display: "flex", gap: "0.5rem" }}>
           <Button
             appearance="secondary"
             onClick={handleOpenNewListForm}
             text={"New list"}
+            size={"small"}
+          />
+          <Button
+            appearance="secondary"
+            onClick={() => setLabelDialogVisible(true)}
+            text={"Labels"}
             size={"small"}
           />
         </div>

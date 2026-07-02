@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import { Todo, TodoNote } from "../common/types/Models";
+import { RegularTodo, Todo, LabelTodo, TodoNote, Label, LabelItem } from "../common/types/Models";
 
 export const fetchTodoLists = async (): Promise<{ name: string }[]> => {
   const { data } = await apiClient.get("/api/todolists");
@@ -25,7 +25,7 @@ export const fetchTodos = async (listName: string): Promise<Todo[]> => {
 export const createTodo = async (
   listName: string,
   todo: { text: string; todoId: string; checked: boolean; order: number },
-): Promise<Todo> => {
+): Promise<RegularTodo> => {
   const { data } = await apiClient.post(
     `/api/todolists/${encodeURIComponent(listName)}/todos`,
     todo,
@@ -67,5 +67,61 @@ export const upsertTodoNote = async (
   text: string,
 ): Promise<{ text: string }> => {
   const { data } = await apiClient.put(`/api/todos/${todoId}/note`, { text });
+  return data;
+};
+
+// --------------- Labels ---------------
+
+export const fetchLabels = async (): Promise<Label[]> => {
+  const { data } = await apiClient.get("/api/labels");
+  return data;
+};
+
+export const createLabel = async (name: string): Promise<Label> => {
+  const { data } = await apiClient.post("/api/labels", { name });
+  return data;
+};
+
+export const deleteLabel = async (labelId: string): Promise<void> => {
+  await apiClient.delete(`/api/labels/${labelId}`);
+};
+
+export const fetchLabelItems = async (labelId: string): Promise<LabelItem[]> => {
+  const { data } = await apiClient.get(`/api/labels/${labelId}/items`);
+  return data;
+};
+
+export const addLabelItem = async (
+  labelId: string,
+  text: string,
+): Promise<LabelItem> => {
+  const { data } = await apiClient.post(`/api/labels/${labelId}/items`, { text });
+  return data;
+};
+
+export const editLabelItem = async (
+  labelId: string,
+  itemId: string,
+  text: string,
+): Promise<LabelItem> => {
+  const { data } = await apiClient.put(`/api/labels/${labelId}/items/${itemId}`, { text });
+  return data;
+};
+
+export const deleteLabelItem = async (
+  labelId: string,
+  itemId: string,
+): Promise<void> => {
+  await apiClient.delete(`/api/labels/${labelId}/items/${itemId}`);
+};
+
+export const importLabelToList = async (
+  listName: string,
+  labelId: string,
+): Promise<LabelTodo[]> => {
+  const { data } = await apiClient.post(
+    `/api/todolists/${encodeURIComponent(listName)}/import-label`,
+    { labelId },
+  );
   return data;
 };

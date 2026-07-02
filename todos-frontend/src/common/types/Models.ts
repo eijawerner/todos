@@ -3,13 +3,39 @@ export type StyledProps = {
   className?: string;
 };
 
-// Todo -[BELONGS_TO]-> TodoList
-export interface Todo {
-  text: string; // TODO: rename to task
+// RegularTodo -[BELONGS_TO]-> TodoList
+export interface RegularTodo {
+  text: string;
   checked: boolean;
   todoId: string;
   order: number;
   note?: TodoNote;
+}
+
+// LabelTodo -[BELONGS_TO]-> TodoList, -[SOURCED_FROM]-> LabelItem
+export interface LabelTodo {
+  text: string;
+  checked: boolean;
+  todoId: string;
+  order: number;
+  note?: TodoNote;
+  labelItemId: string;
+}
+
+export type Todo = RegularTodo | LabelTodo;
+
+export const isLabelTodo = (item: Todo): item is LabelTodo =>
+  'labelItemId' in item;
+
+export interface Label {
+  labelId: string;
+  name: string;
+  itemCount: number;
+}
+
+export interface LabelItem {
+  itemId: string;
+  text: string;
 }
 
 export interface TodoNote {
@@ -19,7 +45,7 @@ export interface TodoNote {
 
 export interface TodoList {
   name: string;
-  todos: [Todo];
+  todos: Todo[];
 }
 
 export interface TodoListResponse {
@@ -30,12 +56,12 @@ export interface TodoListsData {
   todoLists: TodoList[];
 }
 
-export type LocalTodo = Todo & {
+export type LocalTodo = RegularTodo & {
   saved: boolean;
 };
 
 export type ChangeRequest = {
   type: "add" | "delete" | "update";
-  todo: Todo;
+  todo: RegularTodo;
   id: string;
 };

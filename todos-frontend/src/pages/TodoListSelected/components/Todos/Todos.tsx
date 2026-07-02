@@ -2,8 +2,10 @@ import styled from "styled-components";
 import {
   ChangeRequest,
   StyledProps,
+  RegularTodo,
   Todo,
   TodoNote,
+  isLabelTodo,
 } from "../../../../common/types/Models";
 import React, { useCallback, useEffect, useState, ReactNode, useRef } from "react";
 import { style } from "./Todos.style";
@@ -29,6 +31,7 @@ import { SortableList } from "../SortableList/SortableList";
 import { HeaderBanner } from "../../../../common/components/HeaderBanner/HeaderBanner";
 import { REGULAR_TIMEOUT_BANNER, UNDO_DELETE_TIMEOUT } from '../../../../common/contants/numbers';
 import { TrashIcon } from '@heroicons/react/20/solid';
+import { ImportLabelDialog } from "../ImportLabelDialog/ImportLabelDialog";
 
 export type TodosProps = StyledProps & {
   listName: string;
@@ -112,6 +115,7 @@ function TodosBase({ listName }: TodosProps) {
     todoId: string;
     note: TodoNote;
   } | null>(null);
+  const [importDialogVisible, setImportDialogVisible] = useState(false);
 
   // Online state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -299,6 +303,7 @@ function TodosBase({ listName }: TodosProps) {
   };
 
   const handleEditTodo = (todo: Todo) => {
+    if (isLabelTodo(todo)) return;
     const editChange: ChangeRequest = {
       type: "update",
       todo: todo,
@@ -339,7 +344,7 @@ function TodosBase({ listName }: TodosProps) {
       // reload first to get latest list?
       const order =
         todos.length > 0 ? todos[todos.length - 1].order + 1.0 : 1.0;
-      const newTodoItem: Todo = {
+      const newTodoItem: RegularTodo = {
         text: "",
         todoId: uuid,
         checked: false,
@@ -636,11 +641,22 @@ function TodosBase({ listName }: TodosProps) {
           </SortableList.Item>
         )}
       />
+      <ImportLabelDialog
+        isVisible={importDialogVisible}
+        listName={listName}
+        onClose={() => setImportDialogVisible(false)}
+        onImported={() => reloadTodosList()}
+      />
       <div style={{ display: "flex", gap: "1rem", padding: "1rem" }}>
         <Button
           appearance="primary"
           onClick={() => handleAddTask(listName)}
           text={"New task"}
+        />
+        <Button
+          appearance="secondary"
+          onClick={() => setImportDialogVisible(true)}
+          text={"Import label"}
         />
         <Button
           appearance="secondary"

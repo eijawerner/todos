@@ -1,6 +1,5 @@
 CURRENT:
 - add prettier to auto format files
-- make sure to use hooks when using apollo client (remove usages of client.)
 - leftovers of notes:
 -- add to offline edits
 
@@ -27,11 +26,6 @@ functionality:
 - list id, url with list id? redirect after list is created?
 - (add debounce)
 - load latest stored list when loading page
-- use subscriptions instead of poll (https://neo4j.com/docs/graphql-manual/current/subscriptions/)
-
-Backend future:
-- test to use aura served graphql backend?
-- or skip graphql in backend
 
 CYPHER:
 - get all nodes without relationships: match (n) where not (n)--() RETURN n;

@@ -61,12 +61,12 @@ app.delete("/api/todolists/:name", async (req, res) => {
   const { name } = req.params;
   const session = driver.session();
   try {
-    // Delete notes belonging to todos in this list, then todos, then the list
     await session.run(
       `MATCH (tl:TodoList {name: $name})
-       OPTIONAL MATCH (tl)<-[:BELONGS_TO]-(t:Todo)
-       OPTIONAL MATCH (t)-[:HAS_NOTES]->(n:TodoNote)
-       DETACH DELETE n, t, tl`,
+       OPTIONAL MATCH (tl)<-[:BELONGS_TO]-(item)
+       WHERE item:Todo OR item:LabelTodo
+       OPTIONAL MATCH (item)-[:HAS_NOTES]->(n:TodoNote)
+       DETACH DELETE n, item, tl`,
       { name },
     );
     res.json({ success: true });
@@ -78,24 +78,35 @@ app.delete("/api/todolists/:name", async (req, res) => {
   }
 });
 
-// GET /api/todolists/:name/todos - get all todos in a list (with notes)
+// GET /api/todolists/:name/todos - get all todos in a list (both Todo and LabelTodo)
 app.get("/api/todolists/:name/todos", async (req, res) => {
   const { name } = req.params;
   const session = driver.session();
   try {
     const result = await session.run(
-      `MATCH (tl:TodoList {name: $name})<-[:BELONGS_TO]-(t:Todo)
-       OPTIONAL MATCH (t)-[:HAS_NOTES]->(n:TodoNote)
-       RETURN t.todoId AS todoId, t.text AS text, t.checked AS checked, t.order AS order, n.text AS noteText`,
+      `MATCH (tl:TodoList {name: $name})<-[:BELONGS_TO]-(item)
+       WHERE item:Todo OR item:LabelTodo
+       OPTIONAL MATCH (item)-[:HAS_NOTES]->(n:TodoNote)
+       OPTIONAL MATCH (item)-[:SOURCED_FROM]->(li:LabelItem)
+       RETURN item.todoId AS todoId,
+              COALESCE(li.text, item.text) AS text,
+              item.checked AS checked,
+              item.order AS order,
+              n.text AS noteText,
+              li.itemId AS labelItemId`,
       { name },
     );
-    const todos = result.records.map((r) => ({
-      todoId: r.get("todoId"),
-      text: r.get("text"),
-      checked: r.get("checked"),
-      order: typeof r.get("order") === "object" ? r.get("order").toNumber() : r.get("order"),
-      note: r.get("noteText") != null ? { text: r.get("noteText") } : undefined,
-    }));
+    const todos = result.records.map((r) => {
+      const base = {
+        todoId: r.get("todoId"),
+        text: r.get("text"),
+        checked: r.get("checked"),
+        order: typeof r.get("order") === "object" ? r.get("order").toNumber() : r.get("order"),
+        note: r.get("noteText") != null ? { text: r.get("noteText") } : undefined,
+      };
+      const labelItemId = r.get("labelItemId");
+      return labelItemId != null ? { ...base, labelItemId } : base;
+    });
     res.json(todos);
   } catch (e) {
     console.error(e);
@@ -126,18 +137,26 @@ app.post("/api/todolists/:name/todos", async (req, res) => {
   }
 });
 
-// PUT /api/todos/:todoId - update a todo
+// PUT /api/todos/:todoId - update a todo (works for both Todo and LabelTodo)
 app.put("/api/todos/:todoId", async (req, res) => {
   const { todoId } = req.params;
   const { text, checked, order } = req.body;
   const session = driver.session();
   try {
-    await session.run(
+    const todoResult = await session.run(
       `MATCH (t:Todo {todoId: $todoId})
        SET t.text = $text, t.checked = $checked, t.order = $order
-       RETURN t`,
+       RETURN t.todoId AS todoId`,
       { todoId, text, checked, order },
     );
+    if (todoResult.records.length === 0) {
+      await session.run(
+        `MATCH (lt:LabelTodo {todoId: $todoId})
+         SET lt.checked = $checked, lt.order = $order
+         RETURN lt.todoId AS todoId`,
+        { todoId, checked, order },
+      );
+    }
     res.json({ todoId, text, checked, order });
   } catch (e) {
     console.error(e);
@@ -147,15 +166,16 @@ app.put("/api/todos/:todoId", async (req, res) => {
   }
 });
 
-// DELETE /api/todos/:todoId - delete a todo and its note
+// DELETE /api/todos/:todoId - delete a todo and its note (both Todo and LabelTodo)
 app.delete("/api/todos/:todoId", async (req, res) => {
   const { todoId } = req.params;
   const session = driver.session();
   try {
     await session.run(
-      `MATCH (t:Todo {todoId: $todoId})
-       OPTIONAL MATCH (t)-[:HAS_NOTES]->(n:TodoNote)
-       DETACH DELETE n, t`,
+      `MATCH (item {todoId: $todoId})
+       WHERE item:Todo OR item:LabelTodo
+       OPTIONAL MATCH (item)-[:HAS_NOTES]->(n:TodoNote)
+       DETACH DELETE n, item`,
       { todoId },
     );
     res.json({ success: true });
@@ -173,9 +193,9 @@ app.delete("/api/todos", async (req, res) => {
   const session = driver.session();
   try {
     await session.run(
-      `MATCH (t:Todo) WHERE t.todoId IN $todoIds
-       OPTIONAL MATCH (t)-[:HAS_NOTES]->(n:TodoNote)
-       DETACH DELETE n, t`,
+      `MATCH (item) WHERE (item:Todo OR item:LabelTodo) AND item.todoId IN $todoIds
+       OPTIONAL MATCH (item)-[:HAS_NOTES]->(n:TodoNote)
+       DETACH DELETE n, item`,
       { todoIds },
     );
     res.json({ success: true });
@@ -193,7 +213,8 @@ app.get("/api/todos/:todoId/note", async (req, res) => {
   const session = driver.session();
   try {
     const result = await session.run(
-      `MATCH (t:Todo {todoId: $todoId})-[:HAS_NOTES]->(n:TodoNote)
+      `MATCH (item {todoId: $todoId})-[:HAS_NOTES]->(n:TodoNote)
+       WHERE item:Todo OR item:LabelTodo
        RETURN n.text AS text`,
       { todoId },
     );
@@ -217,8 +238,9 @@ app.put("/api/todos/:todoId/note", async (req, res) => {
   const session = driver.session();
   try {
     await session.run(
-      `MATCH (t:Todo {todoId: $todoId})
-       MERGE (t)-[:HAS_NOTES]->(n:TodoNote)
+      `MATCH (item {todoId: $todoId})
+       WHERE item:Todo OR item:LabelTodo
+       MERGE (item)-[:HAS_NOTES]->(n:TodoNote)
        SET n.text = $text, n.links = []
        RETURN n.text AS text`,
       { todoId, text },
@@ -227,6 +249,217 @@ app.put("/api/todos/:todoId/note", async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Failed to update note" });
+  } finally {
+    await session.close();
+  }
+});
+
+// --------------- Labels ---------------
+
+// GET /api/labels - list all labels with item counts
+app.get("/api/labels", async (req, res) => {
+  const session = driver.session();
+  try {
+    const result = await session.run(
+      `MATCH (l:Label)
+       OPTIONAL MATCH (li:LabelItem)-[:PART_OF]->(l)
+       RETURN l.labelId AS labelId, l.name AS name, count(li) AS itemCount
+       ORDER BY l.name`,
+    );
+    const labels = result.records.map((r) => ({
+      labelId: r.get("labelId"),
+      name: r.get("name"),
+      itemCount: typeof r.get("itemCount") === "object" ? r.get("itemCount").toNumber() : r.get("itemCount"),
+    }));
+    res.json(labels);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to fetch labels" });
+  } finally {
+    await session.close();
+  }
+});
+
+// POST /api/labels - create a label
+app.post("/api/labels", async (req, res) => {
+  const { name } = req.body;
+  const session = driver.session();
+  try {
+    const existing = await session.run(
+      `MATCH (l:Label) WHERE toLower(l.name) = toLower($name) RETURN l`,
+      { name },
+    );
+    if (existing.records.length > 0) {
+      return res.status(409).json({ error: "A label with this name already exists" });
+    }
+    const labelId = crypto.randomUUID();
+    await session.run(
+      `CREATE (l:Label {labelId: $labelId, name: $name}) RETURN l`,
+      { labelId, name },
+    );
+    return res.json({ labelId, name, itemCount: 0 });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to create label" });
+  } finally {
+    await session.close();
+  }
+});
+
+// DELETE /api/labels/:labelId - delete a label, its items, and any LabelTodos sourced from them
+app.delete("/api/labels/:labelId", async (req, res) => {
+  const { labelId } = req.params;
+  const session = driver.session();
+  try {
+    await session.run(
+      `MATCH (l:Label {labelId: $labelId})
+       OPTIONAL MATCH (li:LabelItem)-[:PART_OF]->(l)
+       OPTIONAL MATCH (lt:LabelTodo)-[:SOURCED_FROM]->(li)
+       OPTIONAL MATCH (lt)-[:HAS_NOTES]->(n:TodoNote)
+       DETACH DELETE n, lt, li, l`,
+      { labelId },
+    );
+    res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to delete label" });
+  } finally {
+    await session.close();
+  }
+});
+
+// GET /api/labels/:labelId/items - get items in a label
+app.get("/api/labels/:labelId/items", async (req, res) => {
+  const { labelId } = req.params;
+  const session = driver.session();
+  try {
+    const result = await session.run(
+      `MATCH (li:LabelItem)-[:PART_OF]->(l:Label {labelId: $labelId})
+       RETURN li.itemId AS itemId, li.text AS text
+       ORDER BY li.text`,
+      { labelId },
+    );
+    const items = result.records.map((r) => ({
+      itemId: r.get("itemId"),
+      text: r.get("text"),
+    }));
+    res.json(items);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to fetch label items" });
+  } finally {
+    await session.close();
+  }
+});
+
+// POST /api/labels/:labelId/items - add item to a label
+app.post("/api/labels/:labelId/items", async (req, res) => {
+  const { labelId } = req.params;
+  const { text } = req.body;
+  const itemId = crypto.randomUUID();
+  const session = driver.session();
+  try {
+    await session.run(
+      `MATCH (l:Label {labelId: $labelId})
+       CREATE (li:LabelItem {itemId: $itemId, text: $text})-[:PART_OF]->(l)
+       RETURN li`,
+      { labelId, itemId, text },
+    );
+    res.json({ itemId, text });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to add label item" });
+  } finally {
+    await session.close();
+  }
+});
+
+// PUT /api/labels/:labelId/items/:itemId - edit a label item's text
+app.put("/api/labels/:labelId/items/:itemId", async (req, res) => {
+  const { itemId } = req.params;
+  const { text } = req.body;
+  const session = driver.session();
+  try {
+    await session.run(
+      `MATCH (li:LabelItem {itemId: $itemId})
+       SET li.text = $text
+       RETURN li`,
+      { itemId, text },
+    );
+    res.json({ itemId, text });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to update label item" });
+  } finally {
+    await session.close();
+  }
+});
+
+// POST /api/todolists/:name/import-label - import label items into a list as LabelTodos
+app.post("/api/todolists/:name/import-label", async (req, res) => {
+  const { name } = req.params;
+  const { labelId } = req.body;
+  const session = driver.session();
+  try {
+    const maxOrderResult = await session.run(
+      `MATCH (tl:TodoList {name: $name})<-[:BELONGS_TO]-(item)
+       WHERE item:Todo OR item:LabelTodo
+       RETURN max(item.order) AS maxOrder`,
+      { name },
+    );
+    let nextOrder = 1.0;
+    const maxRaw = maxOrderResult.records[0]?.get("maxOrder");
+    if (maxRaw != null) {
+      nextOrder = (typeof maxRaw === "object" ? maxRaw.toNumber() : maxRaw) + 1.0;
+    }
+
+    const result = await session.run(
+      `MATCH (tl:TodoList {name: $name})
+       MATCH (li:LabelItem)-[:PART_OF]->(l:Label {labelId: $labelId})
+       WHERE NOT EXISTS {
+         MATCH (tl)<-[:BELONGS_TO]-(existing:LabelTodo)-[:SOURCED_FROM]->(li)
+       }
+       WITH tl, li ORDER BY li.text
+       WITH tl, collect(li) AS items
+       UNWIND range(0, size(items)-1) AS idx
+       WITH tl, items[idx] AS li, $nextOrder + idx AS ord
+       CREATE (lt:LabelTodo {todoId: randomUUID(), checked: false, order: ord})-[:BELONGS_TO]->(tl)
+       CREATE (lt)-[:SOURCED_FROM]->(li)
+       RETURN li.text AS text, lt.todoId AS todoId, lt.order AS order, li.itemId AS labelItemId`,
+      { name, labelId, nextOrder },
+    );
+    const created = result.records.map((r) => ({
+      todoId: r.get("todoId"),
+      text: r.get("text"),
+      order: typeof r.get("order") === "object" ? r.get("order").toNumber() : r.get("order"),
+      checked: false,
+      labelItemId: r.get("labelItemId"),
+    }));
+    res.json(created);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to import label" });
+  } finally {
+    await session.close();
+  }
+});
+
+// DELETE /api/labels/:labelId/items/:itemId - remove item from label (and its LabelTodos)
+app.delete("/api/labels/:labelId/items/:itemId", async (req, res) => {
+  const { itemId } = req.params;
+  const session = driver.session();
+  try {
+    await session.run(
+      `MATCH (li:LabelItem {itemId: $itemId})
+       OPTIONAL MATCH (lt:LabelTodo)-[:SOURCED_FROM]->(li)
+       OPTIONAL MATCH (lt)-[:HAS_NOTES]->(n:TodoNote)
+       DETACH DELETE n, lt, li`,
+      { itemId },
+    );
+    res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to delete label item" });
   } finally {
     await session.close();
   }
