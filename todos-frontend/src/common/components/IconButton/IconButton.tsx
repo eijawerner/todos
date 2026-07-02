@@ -24,11 +24,11 @@ const StyledIconButton = styled.button<{ $bgColor: string }>`
   }
 `;
 
-const StyledIcon = styled.div`
-  width: 34px;
-  height: 34px;
+const StyledIcon = styled.div<{ $size: "regular" | "small" }>`
+  width: ${(props) => (props.$size === "small" ? "24px" : "34px")};
+  height: ${(props) => (props.$size === "small" ? "24px" : "34px")};
   color: ${COLOR_DARK_BLUE};
-  padding: 0.5rem;
+  padding: ${(props) => (props.$size === "small" ? "0.3rem" : "0.5rem")};
 `;
 
 type IconButtonProps = ButtonHTMLAttributes<any> &
@@ -36,11 +36,17 @@ type IconButtonProps = ButtonHTMLAttributes<any> &
     onClick?: () => void;
     children: React.ReactNode;
     bgColor?: string;
+    size?: "regular" | "small";
   };
-export const IconButton = ({ children, bgColor = COLOR_BLUE_SKY, ...restProps }: IconButtonProps) => {
+export const IconButton = ({
+  children,
+  bgColor = COLOR_BLUE_SKY,
+  size = "regular",
+  ...restProps
+}: IconButtonProps) => {
   return (
     <StyledIconButton $bgColor={bgColor} {...restProps}>
-      <StyledIcon>{children}</StyledIcon>
+      <StyledIcon $size={size}>{children}</StyledIcon>
     </StyledIconButton>
   );
 };

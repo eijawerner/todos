@@ -95,12 +95,24 @@ it("shows the server error when creating a list fails", async () => {
   ).toBeInTheDocument();
 });
 
+it("opens the label management dialog from the labels icon", async () => {
+  mocked.fetchLabels.mockResolvedValue([]);
+  renderPage();
+
+  await waitFor(() => expect(screen.getByRole("combobox")).toHaveValue("Alpha"));
+  await userEvent.click(screen.getByRole("button", { name: "Manage labels" }));
+
+  expect(
+    await screen.findByText("No labels yet. Create one above."),
+  ).toBeInTheDocument();
+});
+
 it("deletes the selected list after confirmation", async () => {
   mocked.deleteTodoList.mockResolvedValue(undefined);
   renderPage();
 
   await waitFor(() => expect(screen.getByRole("combobox")).toHaveValue("Alpha"));
-  await userEvent.click(screen.getByRole("button", { name: "delete" }));
+  await userEvent.click(screen.getByRole("button", { name: "Delete selected list" }));
 
   expect(
     screen.getByText("Are you sure you want to delete list Alpha?"),

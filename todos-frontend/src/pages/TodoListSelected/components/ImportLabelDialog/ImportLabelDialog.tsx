@@ -4,8 +4,12 @@ import styled from "styled-components";
 import { Dialog } from "../../../../common/components/Dialog/Dialog";
 import { Button } from "../../../../common/components/Button/Button";
 import { ErrorBanner } from "../../../../common/components/ErrorBanner/ErrorBanner";
-import { fetchLabels, importLabelToList } from "../../../../api/todoApi";
-import { Label } from "../../../../common/types/Models";
+import {
+  fetchLabels,
+  fetchLabelItems,
+  importLabelToList,
+} from "../../../../api/todoApi";
+import { Label, LabelItem } from "../../../../common/types/Models";
 import {
   COLOR_BLACK,
   COLOR_BEIGE,
@@ -13,11 +17,20 @@ import {
   COLOR_GREEN,
 } from "../../../../common/contants/colors";
 import { StyledCheckboxInput } from "../../../../common/components/Checkbox";
+import { ChevronDownIcon } from "@heroicons/react/20/solid";
 
 const StyledTitle = styled.h2`
   font-size: 1.8rem;
   color: ${COLOR_DARK_BLUE};
   margin: 0;
+`;
+
+const StyledHeaderRow = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 `;
 
 const StyledList = styled.div`
@@ -28,20 +41,27 @@ const StyledList = styled.div`
   overflow-y: auto;
 `;
 
+const StyledLabelContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: white;
+  border-radius: 0.4rem;
+`;
+
 const StyledLabelRow = styled.label`
   display: flex;
   flex-direction: row;
   align-items: center;
+  flex: 1;
   gap: 0.75rem;
   padding: 0.6rem 0.75rem;
-  background: white;
-  border-radius: 0.4rem;
   font-size: 1.4rem;
   color: ${COLOR_BLACK};
   cursor: pointer;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(0, 0, 0, 0.03);
   }
 `;
 
@@ -52,6 +72,41 @@ const StyledLabelName = styled.span`
 const StyledItemCount = styled.span`
   font-size: 1.2rem;
   color: ${COLOR_BEIGE};
+`;
+
+const StyledExpandButton = styled.button<{ $expanded: boolean }>`
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: ${COLOR_DARK_BLUE};
+  padding: 0.4rem;
+  display: flex;
+  align-items: center;
+
+  svg {
+    height: 18px;
+    width: 18px;
+    transform: rotate(${(props) => (props.$expanded ? "180deg" : "0deg")});
+    transition: transform 0.15s ease;
+  }
+
+  &:hover {
+    opacity: 0.7;
+  }
+`;
+
+const StyledExpandedArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.4rem 0.75rem 0.6rem 2.5rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 0 0 0.4rem 0.4rem;
+`;
+
+const StyledItemText = styled.span`
+  font-size: 1.3rem;
+  color: ${COLOR_BLACK};
 `;
 
 const StyledEmptyText = styled.p`
@@ -73,6 +128,7 @@ type ImportLabelDialogProps = {
   listName: string;
   onClose: () => void;
   onImported: () => void;
+  onManageLabels: () => void;
 };
 
 export function ImportLabelDialog({
@@ -80,15 +136,18 @@ export function ImportLabelDialog({
   listName,
   onClose,
   onImported,
+  onManageLabels,
 }: ImportLabelDialogProps) {
   const queryClient = useQueryClient();
   const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(new Set());
   const [importedCount, setImportedCount] = useState<number | null>(null);
+  const [expandedLabelId, setExpandedLabelId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isVisible) {
       setSelectedLabelIds(new Set());
       setImportedCount(null);
+      setExpandedLabelId(null);
     }
   }, [isVisible]);
 
@@ -96,6 +155,12 @@ export function ImportLabelDialog({
     queryKey: ["labels"],
     queryFn: fetchLabels,
     enabled: isVisible,
+  });
+
+  const labelItemsQuery = useQuery({
+    queryKey: ["labelItems", expandedLabelId],
+    queryFn: () => fetchLabelItems(expandedLabelId!),
+    enabled: !!expandedLabelId,
   });
 
   const importMutation = useMutation({
@@ -130,18 +195,31 @@ export function ImportLabelDialog({
     });
   };
 
+  const toggleExpanded = (labelId: string) => {
+    setExpandedLabelId((prev) => (prev === labelId ? null : labelId));
+  };
+
   const handleImport = () => {
     if (selectedLabelIds.size === 0) return;
     importMutation.mutate(Array.from(selectedLabelIds));
   };
 
-  const labels: Label[] = (labelsQuery.data ?? []).filter((l) => l.itemCount > 0);
+  const labels: Label[] = labelsQuery.data ?? [];
+  const labelItems: LabelItem[] = labelItemsQuery.data ?? [];
 
   if (!isVisible) return null;
 
   return (
     <Dialog isVisible={isVisible} onClose={onClose}>
-      <StyledTitle>Import from label</StyledTitle>
+      <StyledHeaderRow>
+        <StyledTitle>Import from label</StyledTitle>
+        <Button
+          text="Manage labels"
+          appearance="secondary"
+          size="small"
+          onClick={onManageLabels}
+        />
+      </StyledHeaderRow>
 
       {importMutation.isError && (
         <ErrorBanner message="Failed to import label items" />
@@ -159,21 +237,47 @@ export function ImportLabelDialog({
 
       <StyledList>
         {labels.map((label) => (
-          <StyledLabelRow key={label.labelId}>
-            <StyledCheckboxInput
-              type="checkbox"
-              checked={selectedLabelIds.has(label.labelId)}
-              onChange={() => toggleLabel(label.labelId)}
-            />
-            <StyledLabelName>{label.name}</StyledLabelName>
-            <StyledItemCount>{label.itemCount} items</StyledItemCount>
-          </StyledLabelRow>
+          <div key={label.labelId}>
+            <StyledLabelContainer>
+              <StyledLabelRow>
+                <StyledCheckboxInput
+                  type="checkbox"
+                  checked={selectedLabelIds.has(label.labelId)}
+                  disabled={label.itemCount === 0}
+                  onChange={() => toggleLabel(label.labelId)}
+                />
+                <StyledLabelName>{label.name}</StyledLabelName>
+                <StyledItemCount>{label.itemCount} items</StyledItemCount>
+              </StyledLabelRow>
+              <StyledExpandButton
+                type="button"
+                aria-label={`Show items in ${label.name}`}
+                $expanded={expandedLabelId === label.labelId}
+                onClick={() => toggleExpanded(label.labelId)}
+              >
+                <ChevronDownIcon />
+              </StyledExpandButton>
+            </StyledLabelContainer>
+            {expandedLabelId === label.labelId && (
+              <StyledExpandedArea>
+                {labelItemsQuery.isLoading && (
+                  <StyledItemText>Loading...</StyledItemText>
+                )}
+                {labelItems.map((item) => (
+                  <StyledItemText key={item.itemId}>{item.text}</StyledItemText>
+                ))}
+                {!labelItemsQuery.isLoading && labelItems.length === 0 && (
+                  <StyledItemText>No items in this label.</StyledItemText>
+                )}
+              </StyledExpandedArea>
+            )}
+          </div>
         ))}
       </StyledList>
 
       {!labelsQuery.isLoading && labels.length === 0 && (
         <StyledEmptyText>
-          No labels with items. Create labels and add items via the Labels button.
+          No labels yet. Use "Manage labels" to create one.
         </StyledEmptyText>
       )}
 

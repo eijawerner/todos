@@ -17,10 +17,8 @@ import {
 import { Label, LabelItem } from "../../../../common/types/Models";
 import {
   COLOR_BLACK,
-  COLOR_GREY_LIGHT,
   COLOR_DARK_BLUE,
   COLOR_RED,
-  COLOR_WHITE,
   COLOR_BEIGE,
 } from "../../../../common/contants/colors";
 import { TrashIcon, ChevronLeftIcon } from "@heroicons/react/20/solid";
@@ -133,6 +131,12 @@ const StyledEmptyText = styled.p`
   margin: 1rem 0;
 `;
 
+const StyledConfirmText = styled.p`
+  font-size: 1.5rem;
+  color: ${COLOR_BLACK};
+  margin: 0.5rem 0;
+`;
+
 type LabelManagementDialogProps = {
   isVisible: boolean;
   onClose: () => void;
@@ -144,6 +148,7 @@ export function LabelManagementDialog({
 }: LabelManagementDialogProps) {
   const queryClient = useQueryClient();
   const [selectedLabel, setSelectedLabel] = useState<Label | null>(null);
+  const [labelPendingDelete, setLabelPendingDelete] = useState<Label | null>(null);
   const [newLabelName, setNewLabelName] = useState("");
   const [newItemText, setNewItemText] = useState("");
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -152,6 +157,7 @@ export function LabelManagementDialog({
   useEffect(() => {
     if (isVisible) {
       setSelectedLabel(null);
+      setLabelPendingDelete(null);
       setNewLabelName("");
       setNewItemText("");
       setEditingItemId(null);
@@ -172,15 +178,18 @@ export function LabelManagementDialog({
 
   const createLabelMutation = useMutation({
     mutationFn: (name: string) => createLabel(name),
-    onSuccess: () => {
+    onSuccess: (created) => {
       setNewLabelName("");
       queryClient.invalidateQueries({ queryKey: ["labels"] });
+      // Go straight into the new label so items can be added right away
+      setSelectedLabel(created);
     },
   });
 
   const deleteLabelMutation = useMutation({
     mutationFn: (labelId: string) => deleteLabel(labelId),
     onSuccess: () => {
+      setLabelPendingDelete(null);
       queryClient.invalidateQueries({ queryKey: ["labels"] });
       // The server cascade-deletes LabelTodos sourced from this label,
       // so any open todo list must refetch or it keeps showing ghost rows
@@ -240,6 +249,11 @@ export function LabelManagementDialog({
     editItemMutation.mutate({ itemId, text: editingText.trim() });
   };
 
+  const handleRequestDeleteLabel = (label: Label) => {
+    deleteLabelMutation.reset();
+    setLabelPendingDelete(label);
+  };
+
   const labels: Label[] = labelsQuery.data ?? [];
   const labelItems: LabelItem[] = labelItemsQuery.data ?? [];
 
@@ -267,7 +281,27 @@ export function LabelManagementDialog({
         <ErrorBanner message="Failed to delete item" />
       )}
 
-      {selectedLabel ? (
+      {labelPendingDelete ? (
+        <>
+          <StyledTitle>Delete label</StyledTitle>
+          <StyledConfirmText>
+            {`Are you sure you want to delete the label "${labelPendingDelete.name}"? Its items will also be removed from every todo list where this label has been imported.`}
+          </StyledConfirmText>
+          <Dialog.Actions>
+            <Button
+              text="Cancel"
+              appearance="secondary"
+              onClick={() => setLabelPendingDelete(null)}
+            />
+            <Button
+              text="Delete label"
+              appearance="primary"
+              loading={deleteLabelMutation.isPending}
+              onClick={() => deleteLabelMutation.mutate(labelPendingDelete.labelId)}
+            />
+          </Dialog.Actions>
+        </>
+      ) : selectedLabel ? (
         <>
           <StyledBackButton onClick={() => setSelectedLabel(null)}>
             <ChevronLeftIcon style={{ height: "18px" }} />
@@ -298,24 +332,25 @@ export function LabelManagementDialog({
             {labelItems.map((item) => (
               <StyledListItem key={item.itemId}>
                 {editingItemId === item.itemId ? (
-                  <>
-                    <StyledEditInput
-                      value={editingText}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => setEditingText(e.target.value)}
-                      onBlur={() => handleSaveEdit(item.itemId)}
-                      onKeyDown={(e: React.KeyboardEvent) => {
-                        if (e.key === "Enter") handleSaveEdit(item.itemId);
-                        if (e.key === "Escape") setEditingItemId(null);
-                      }}
-                      autoFocus
-                    />
-                  </>
+                  <StyledEditInput
+                    value={editingText}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setEditingText(e.target.value)}
+                    onBlur={() => handleSaveEdit(item.itemId)}
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                      if (e.key === "Enter") handleSaveEdit(item.itemId);
+                      if (e.key === "Escape") setEditingItemId(null);
+                    }}
+                    autoFocus
+                  />
                 ) : (
                   <>
                     <StyledItemText onClick={() => handleStartEdit(item)}>
                       {item.text}
                     </StyledItemText>
-                    <StyledDeleteButton onClick={() => deleteItemMutation.mutate(item.itemId)}>
+                    <StyledDeleteButton
+                      aria-label={`Delete ${item.text}`}
+                      onClick={() => deleteItemMutation.mutate(item.itemId)}
+                    >
                       <TrashIcon style={{ height: "16px" }} />
                     </StyledDeleteButton>
                   </>
@@ -358,7 +393,10 @@ export function LabelManagementDialog({
                   {label.name}
                 </StyledItemText>
                 <StyledItemCount>{label.itemCount} items</StyledItemCount>
-                <StyledDeleteButton onClick={() => deleteLabelMutation.mutate(label.labelId)}>
+                <StyledDeleteButton
+                  aria-label={`Delete label ${label.name}`}
+                  onClick={() => handleRequestDeleteLabel(label)}
+                >
                   <TrashIcon style={{ height: "16px" }} />
                 </StyledDeleteButton>
               </StyledListItem>

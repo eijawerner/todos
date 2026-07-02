@@ -28,6 +28,7 @@ beforeEach(() => {
   mocked.fetchLabels.mockResolvedValue([
     { labelId: "l1", name: "Packing", itemCount: 2 },
   ]);
+  mocked.fetchLabelItems.mockResolvedValue([]);
   mocked.deleteLabel.mockResolvedValue(undefined);
 });
 
@@ -56,7 +57,7 @@ it("creates a label and refreshes the label list", async () => {
   );
 });
 
-it("drills into a label and adds an item", async () => {
+it("opens a label and adds an item", async () => {
   mocked.fetchLabelItems.mockResolvedValue([{ itemId: "i1", text: "Socks" }]);
   mocked.addLabelItem.mockResolvedValue({ itemId: "i2", text: "Hat" });
   renderDialog();
@@ -101,7 +102,6 @@ it("deletes an item from a label", async () => {
 });
 
 it("returns to the label list from the back button", async () => {
-  mocked.fetchLabelItems.mockResolvedValue([]);
   renderDialog();
 
   await userEvent.click(await screen.findByText("Packing"));
@@ -115,11 +115,28 @@ it("returns to the label list from the back button", async () => {
 // BUG: deleting a label cascades to its LabelTodos on the server, but only
 // the ["labels"] query is invalidated. An open todo list keeps showing rows
 // that no longer exist ("ghost rows") until a manual sync.
+it("asks for confirmation before deleting a label and warns about affected lists", async () => {
+  renderDialog();
+
+  await screen.findByText("Packing");
+  await userEvent.click(screen.getByRole("button", { name: "Delete label Packing" }));
+
+  expect(
+    screen.getByText(/removed from every todo list where this label has been imported/i),
+  ).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(mocked.deleteLabel).not.toHaveBeenCalled();
+  expect(await screen.findByText("2 items")).toBeInTheDocument(); // back on the list
+});
+
 it("invalidates todos queries after deleting a label so open lists drop its todos", async () => {
   const { invalidateSpy } = renderDialog();
 
-  const row = (await screen.findByText("Packing")).closest("div")!;
-  await userEvent.click(within(row).getByRole("button"));
+  await screen.findByText("Packing");
+  await userEvent.click(screen.getByRole("button", { name: "Delete label Packing" }));
+  await userEvent.click(screen.getByRole("button", { name: "Delete label" }));
   await waitFor(() => expect(mocked.deleteLabel).toHaveBeenCalledWith("l1"));
 
   const invalidatedTodos = invalidateSpy.mock.calls.some(
@@ -135,8 +152,9 @@ it("shows an error message when deleting a label fails", async () => {
   mocked.deleteLabel.mockRejectedValue(new Error("network down"));
   renderDialog();
 
-  const row = (await screen.findByText("Packing")).closest("div")!;
-  await userEvent.click(within(row).getByRole("button"));
+  await screen.findByText("Packing");
+  await userEvent.click(screen.getByRole("button", { name: "Delete label Packing" }));
+  await userEvent.click(screen.getByRole("button", { name: "Delete label" }));
   await waitFor(() => expect(mocked.deleteLabel).toHaveBeenCalled());
 
   expect(await screen.findByText(/fail|error/i)).toBeInTheDocument();

@@ -35,6 +35,7 @@ import { ImportLabelDialog } from "../ImportLabelDialog/ImportLabelDialog";
 
 export type TodosProps = StyledProps & {
   listName: string;
+  onManageLabels?: () => void;
 };
 
 const StyledTodoRowWrapper = styled.div`
@@ -106,7 +107,7 @@ const executeSequentially = (promiseFactories: any) => {
   return result;
 };
 
-function TodosBase({ listName }: TodosProps) {
+function TodosBase({ listName, onManageLabels }: TodosProps) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [changes, setChanges] = useState<ChangeRequest[]>([]);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
@@ -658,6 +659,10 @@ function TodosBase({ listName }: TodosProps) {
         listName={listName}
         onClose={() => setImportDialogVisible(false)}
         onImported={() => reloadTodosList()}
+        onManageLabels={() => {
+          setImportDialogVisible(false);
+          onManageLabels?.();
+        }}
       />
       <div style={{ display: "flex", gap: "1rem", padding: "1rem" }}>
         <Button

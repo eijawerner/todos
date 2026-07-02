@@ -13,6 +13,8 @@ import {
 } from "./components/TodoListSelector/TodoListSelector";
 import { Todos } from "./components/Todos/Todos";
 import { Button } from "../../common/components/Button/Button";
+import { IconButton } from "../../common/components/IconButton/IconButton";
+import { TagIcon, TrashIcon } from "@heroicons/react/20/solid";
 import { HeaderBanner } from "../../common/components/HeaderBanner/HeaderBanner";
 import {
   fetchTodoLists,
@@ -158,31 +160,35 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
       />
 
       <StyledSelectListWrapper>
-        <div style={{ marginRight: "2rem", display: "flex", gap: "0.5rem" }}>
+        <div style={{ marginRight: "2rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <Button
             appearance="secondary"
             onClick={handleOpenNewListForm}
             text={"New list"}
             size={"small"}
           />
-          <Button
-            appearance="secondary"
+          <IconButton
+            size="small"
             onClick={() => setLabelDialogVisible(true)}
-            text={"Labels"}
-            size={"small"}
-          />
+            aria-label="Manage labels"
+            title="Manage labels"
+          >
+            <TagIcon />
+          </IconButton>
         </div>
         <TodoListSelector
           selected={selectedList}
           todoLists={[...todoLists].sort(sortByListName)}
           onSelectTodoListChange={handleSelectTodoList}
         />
-        <Button
-          text={"delete"}
-          appearance={"secondary"}
+        <IconButton
           size="small"
           onClick={handleDeleteButtonClick}
-        />
+          aria-label="Delete selected list"
+          title="Delete selected list"
+        >
+          <TrashIcon />
+        </IconButton>
       </StyledSelectListWrapper>
 
       <TodoListDeleteConfirmDialog
@@ -194,7 +200,12 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
         error={deleteListMutation.isError ? getErrorMessage(deleteListMutation.error, "Failed to delete list") : null}
       />
 
-      {selectedList !== NONE_SELECTED && <Todos listName={selectedList} />}
+      {selectedList !== NONE_SELECTED && (
+        <Todos
+          listName={selectedList}
+          onManageLabels={() => setLabelDialogVisible(true)}
+        />
+      )}
     </div>
   );
 };
