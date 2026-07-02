@@ -157,6 +157,7 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
       <LabelManagementDialog
         isVisible={labelDialogVisible}
         onClose={() => setLabelDialogVisible(false)}
+        listName={selectedList !== NONE_SELECTED ? selectedList : null}
       />
 
       <StyledSelectListWrapper>

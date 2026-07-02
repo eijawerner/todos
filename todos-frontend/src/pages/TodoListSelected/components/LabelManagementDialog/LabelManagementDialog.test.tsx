@@ -10,17 +10,28 @@ vi.mock("../../../../api/todoApi");
 
 const mocked = vi.mocked(todoApi);
 
-function renderDialog() {
+function renderDialog(listName: string | null = "Trip") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
   render(
     <QueryClientProvider client={queryClient}>
-      <LabelManagementDialog isVisible={true} onClose={() => {}} />
+      <LabelManagementDialog
+        isVisible={true}
+        onClose={() => {}}
+        listName={listName}
+      />
     </QueryClientProvider>,
   );
   return { invalidateSpy };
+}
+
+function invalidatedTodosQueries(invalidateSpy: ReturnType<typeof vi.spyOn>) {
+  return invalidateSpy.mock.calls.some(
+    ([filters]: any[]) =>
+      Array.isArray(filters?.queryKey) && filters?.queryKey[0] === "todos",
+  );
 }
 
 beforeEach(() => {
@@ -37,6 +48,84 @@ it("lists labels with their item counts", async () => {
 
   expect(await screen.findByText("Packing")).toBeInTheDocument();
   expect(screen.getByText("2 items")).toBeInTheDocument();
+});
+
+it("imports selected labels into the current list", async () => {
+  mocked.importLabelToList.mockResolvedValue([
+    { todoId: "t1", text: "Socks", checked: false, order: 1, labelItemId: "li1" },
+  ]);
+  const { invalidateSpy } = renderDialog();
+
+  const packingCheckbox = await screen.findByRole("checkbox", {
+    name: "Select Packing for import",
+  });
+  const importButton = screen.getByRole("button", { name: "Import" });
+  expect(importButton).toBeDisabled(); // nothing selected yet
+
+  await userEvent.click(packingCheckbox);
+  expect(importButton).toBeEnabled();
+  await userEvent.click(importButton);
+
+  await waitFor(() =>
+    expect(mocked.importLabelToList).toHaveBeenCalledWith("Trip", "l1"),
+  );
+  expect(await screen.findByText("Added 1 item to list")).toBeInTheDocument();
+  expect(invalidatedTodosQueries(invalidateSpy)).toBe(true);
+});
+
+it("disables the import checkbox for labels without items", async () => {
+  mocked.fetchLabels.mockResolvedValue([
+    { labelId: "l1", name: "Packing", itemCount: 2 },
+    { labelId: "l2", name: "Empty", itemCount: 0 },
+  ]);
+  renderDialog();
+
+  await screen.findByText("Empty");
+  expect(
+    screen.getByRole("checkbox", { name: "Select Empty for import" }),
+  ).toBeDisabled();
+  expect(
+    screen.getByRole("checkbox", { name: "Select Packing for import" }),
+  ).toBeEnabled();
+});
+
+it("hides the import controls when no list is selected", async () => {
+  renderDialog(null);
+
+  await screen.findByText("Packing");
+  expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Import" })).not.toBeInTheDocument();
+});
+
+// Regression test: labels import sequentially inside one mutation, so a later
+// failure can leave earlier labels' items created server-side. The list must
+// refresh even then (handled via onSettled).
+it("refreshes the todo list even when an import partially fails", async () => {
+  mocked.fetchLabels.mockResolvedValue([
+    { labelId: "l1", name: "Packing", itemCount: 2 },
+    { labelId: "l2", name: "Food", itemCount: 1 },
+  ]);
+  mocked.importLabelToList.mockImplementation(async (_listName, labelId) => {
+    if (labelId === "l1") {
+      return [
+        { todoId: "t1", text: "Socks", checked: false, order: 1, labelItemId: "li1" },
+      ];
+    }
+    throw new Error("network down");
+  });
+  const { invalidateSpy } = renderDialog();
+
+  await userEvent.click(
+    await screen.findByRole("checkbox", { name: "Select Packing for import" }),
+  );
+  await userEvent.click(
+    screen.getByRole("checkbox", { name: "Select Food for import" }),
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Import" }));
+
+  await waitFor(() => expect(mocked.importLabelToList).toHaveBeenCalledTimes(2));
+  expect(await screen.findByText("Failed to import label items")).toBeInTheDocument();
+  expect(invalidatedTodosQueries(invalidateSpy)).toBe(true);
 });
 
 it("creates a label and refreshes the label list", async () => {

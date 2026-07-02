@@ -31,7 +31,6 @@ import { SortableList } from "../SortableList/SortableList";
 import { HeaderBanner } from "../../../../common/components/HeaderBanner/HeaderBanner";
 import { REGULAR_TIMEOUT_BANNER, UNDO_DELETE_TIMEOUT } from '../../../../common/contants/numbers';
 import { TrashIcon } from '@heroicons/react/20/solid';
-import { ImportLabelDialog } from "../ImportLabelDialog/ImportLabelDialog";
 
 export type TodosProps = StyledProps & {
   listName: string;
@@ -116,7 +115,6 @@ function TodosBase({ listName, onManageLabels }: TodosProps) {
     todoId: string;
     note: TodoNote;
   } | null>(null);
-  const [importDialogVisible, setImportDialogVisible] = useState(false);
 
   // Online state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -654,16 +652,6 @@ function TodosBase({ listName, onManageLabels }: TodosProps) {
           </SortableList.Item>
         )}
       />
-      <ImportLabelDialog
-        isVisible={importDialogVisible}
-        listName={listName}
-        onClose={() => setImportDialogVisible(false)}
-        onImported={() => reloadTodosList()}
-        onManageLabels={() => {
-          setImportDialogVisible(false);
-          onManageLabels?.();
-        }}
-      />
       <div style={{ display: "flex", gap: "1rem", padding: "1rem" }}>
         <Button
           appearance="primary"
@@ -672,8 +660,8 @@ function TodosBase({ listName, onManageLabels }: TodosProps) {
         />
         <Button
           appearance="secondary"
-          onClick={() => setImportDialogVisible(true)}
-          text={"Import label"}
+          onClick={() => onManageLabels?.()}
+          text={"Labels"}
         />
         <Button
           appearance="secondary"

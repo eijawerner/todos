@@ -13,14 +13,17 @@ import {
   addLabelItem,
   editLabelItem,
   deleteLabelItem,
+  importLabelToList,
 } from "../../../../api/todoApi";
 import { Label, LabelItem } from "../../../../common/types/Models";
 import {
   COLOR_BLACK,
   COLOR_DARK_BLUE,
+  COLOR_GREEN,
   COLOR_RED,
   COLOR_BEIGE,
 } from "../../../../common/contants/colors";
+import { StyledCheckboxInput } from "../../../../common/components/Checkbox";
 import { TrashIcon, ChevronLeftIcon } from "@heroicons/react/20/solid";
 
 const StyledTitle = styled.h2`
@@ -139,14 +142,24 @@ const StyledConfirmText = styled.p`
   margin: 0.5rem 0;
 `;
 
+const StyledSuccessText = styled.p`
+  font-size: 1.4rem;
+  color: ${COLOR_GREEN};
+  text-align: center;
+  margin: 0.5rem 0;
+`;
+
 type LabelManagementDialogProps = {
   isVisible: boolean;
   onClose: () => void;
+  // The list selected labels are imported into; null hides the import action
+  listName: string | null;
 };
 
 export function LabelManagementDialog({
   isVisible,
   onClose,
+  listName,
 }: LabelManagementDialogProps) {
   const queryClient = useQueryClient();
   const [selectedLabel, setSelectedLabel] = useState<Label | null>(null);
@@ -155,6 +168,8 @@ export function LabelManagementDialog({
   const [newItemText, setNewItemText] = useState("");
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(new Set());
+  const [importedCount, setImportedCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (isVisible) {
@@ -163,6 +178,8 @@ export function LabelManagementDialog({
       setNewLabelName("");
       setNewItemText("");
       setEditingItemId(null);
+      setSelectedLabelIds(new Set());
+      setImportedCount(null);
     }
   }, [isVisible]);
 
@@ -256,6 +273,44 @@ export function LabelManagementDialog({
     setLabelPendingDelete(label);
   };
 
+  const importMutation = useMutation({
+    mutationFn: async (labelIds: string[]) => {
+      let totalCreated = 0;
+      for (const labelId of labelIds) {
+        const created = await importLabelToList(listName!, labelId);
+        totalCreated += created.length;
+      }
+      return totalCreated;
+    },
+    onSuccess: (count) => {
+      setImportedCount(count);
+      setSelectedLabelIds(new Set());
+    },
+    // Imports run sequentially, so earlier labels may have been created even
+    // if a later one failed - the open list must refresh either way
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos", listName] });
+    },
+  });
+
+  const toggleLabelSelected = (labelId: string) => {
+    setImportedCount(null);
+    setSelectedLabelIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(labelId)) {
+        next.delete(labelId);
+      } else {
+        next.add(labelId);
+      }
+      return next;
+    });
+  };
+
+  const handleImport = () => {
+    if (!listName || selectedLabelIds.size === 0) return;
+    importMutation.mutate(Array.from(selectedLabelIds));
+  };
+
   const labels: Label[] = labelsQuery.data ?? [];
   const labelItems: LabelItem[] = labelItemsQuery.data ?? [];
 
@@ -281,6 +336,9 @@ export function LabelManagementDialog({
       )}
       {deleteItemMutation.isError && (
         <ErrorBanner message="Failed to delete item" />
+      )}
+      {importMutation.isError && (
+        <ErrorBanner message="Failed to import label items" />
       )}
 
       {labelPendingDelete ? (
@@ -379,18 +437,35 @@ export function LabelManagementDialog({
             <Button
               text="Create"
               type="submit"
-              appearance="primary"
+              appearance="secondary"
               size="small"
               loading={createLabelMutation.isPending}
               disabled={newLabelName.trim() === ""}
             />
           </StyledForm>
 
+          {importedCount !== null && (
+            <StyledSuccessText>
+              {importedCount === 0
+                ? "All items already in list"
+                : `Added ${importedCount} item${importedCount !== 1 ? "s" : ""} to list`}
+            </StyledSuccessText>
+          )}
+
           {labelsQuery.isLoading && <StyledEmptyText>Loading...</StyledEmptyText>}
 
           <StyledList>
             {labels.map((label) => (
               <StyledListItem key={label.labelId}>
+                {listName && (
+                  <StyledCheckboxInput
+                    type="checkbox"
+                    aria-label={`Select ${label.name} for import`}
+                    checked={selectedLabelIds.has(label.labelId)}
+                    disabled={label.itemCount === 0}
+                    onChange={() => toggleLabelSelected(label.labelId)}
+                  />
+                )}
                 <StyledItemText onClick={() => setSelectedLabel(label)}>
                   {label.name}
                 </StyledItemText>
@@ -407,6 +482,18 @@ export function LabelManagementDialog({
 
           {!labelsQuery.isLoading && labels.length === 0 && (
             <StyledEmptyText>No labels yet. Create one above.</StyledEmptyText>
+          )}
+
+          {listName && (
+            <Dialog.Actions>
+              <Button
+                text="Import to this list"
+                appearance="secondary"
+                onClick={handleImport}
+                loading={importMutation.isPending}
+                disabled={selectedLabelIds.size === 0}
+              />
+            </Dialog.Actions>
           )}
         </>
       )}
