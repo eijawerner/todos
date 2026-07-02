@@ -9,7 +9,7 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run"
   },
   "engines": {
     "node": "22.x"
@@ -21,5 +21,9 @@
     "express": "5.2.1",
     "neo4j-driver": "5.28.3"
   },
-  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
+  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610",
+  "devDependencies": {
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.9"
+  }
 }

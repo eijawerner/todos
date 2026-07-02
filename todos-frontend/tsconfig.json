@@ -18,5 +18,9 @@
     "types": ["node", "vite/client"],
     "moduleResolution": "node"
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Test files are excluded from `yarn ts-compile` because vitest's type
+  // definitions require a newer TypeScript than 4.9. Vitest transpiles and
+  // runs them independently via `yarn test`.
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/setupTests.ts"]
 }

@@ -465,6 +465,10 @@ app.delete("/api/labels/:labelId/items/:itemId", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server ready at http://localhost:${port}`);
-});
+if (!process.env.VITEST) {
+  app.listen(port, () => {
+    console.log(`Server ready at http://localhost:${port}`);
+  });
+}
+
+export { app };
