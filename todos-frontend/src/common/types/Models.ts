@@ -56,10 +56,6 @@ export interface TodoListsData {
   todoLists: TodoList[];
 }
 
-export type LocalTodo = RegularTodo & {
-  saved: boolean;
-};
-
 export type ChangeRequest = {
   type: "add" | "delete" | "update";
   todo: RegularTodo;

@@ -58,10 +58,6 @@ export const deleteTodo = async (todoId: string): Promise<void> => {
   await apiClient.delete(`/api/todos/${todoId}`);
 };
 
-export const deleteTodos = async (todoIds: string[]): Promise<void> => {
-  await apiClient.delete("/api/todos", { data: { todoIds } });
-};
-
 export const fetchTodoNote = async (
   todoId: string,
 ): Promise<TodoNote | null> => {
