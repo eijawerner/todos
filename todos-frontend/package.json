@@ -13,6 +13,9 @@
     "start": "yarn ts-compile && vite",
     "serve:prod": "serve --single dist --listen 3060"
   },
+  "engines": {
+    "node": "24.x"
+  },
   "devDependencies": {
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "6.9.1",
