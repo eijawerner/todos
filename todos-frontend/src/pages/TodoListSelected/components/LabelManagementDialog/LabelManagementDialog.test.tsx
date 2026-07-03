@@ -59,7 +59,7 @@ it("imports selected labels into the current list", async () => {
   const packingCheckbox = await screen.findByRole("checkbox", {
     name: "Select Packing for import",
   });
-  const importButton = screen.getByRole("button", { name: "Import" });
+  const importButton = screen.getByRole("button", { name: "Import to this list" });
   expect(importButton).toBeDisabled(); // nothing selected yet
 
   await userEvent.click(packingCheckbox);
@@ -94,7 +94,9 @@ it("hides the import controls when no list is selected", async () => {
 
   await screen.findByText("Packing");
   expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Import" })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Import to this list" }),
+  ).not.toBeInTheDocument();
 });
 
 // Regression test: labels import sequentially inside one mutation, so a later
@@ -121,7 +123,7 @@ it("refreshes the todo list even when an import partially fails", async () => {
   await userEvent.click(
     screen.getByRole("checkbox", { name: "Select Food for import" }),
   );
-  await userEvent.click(screen.getByRole("button", { name: "Import" }));
+  await userEvent.click(screen.getByRole("button", { name: "Import to this list" }));
 
   await waitFor(() => expect(mocked.importLabelToList).toHaveBeenCalledTimes(2));
   expect(await screen.findByText("Failed to import label items")).toBeInTheDocument();
