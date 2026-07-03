@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import neo4j from "neo4j-driver";
 import "dotenv/config";
+import { validateOp, applyOp } from "./ops.js";
 
 const app = express();
 app.use(cors());
@@ -93,7 +94,9 @@ app.get("/api/todolists/:name/todos", async (req, res) => {
               item.checked AS checked,
               item.order AS order,
               n.text AS noteText,
-              li.itemId AS labelItemId`,
+              li.itemId AS labelItemId,
+              item.updatedAt AS updatedAt,
+              item.updatedBy AS updatedBy`,
       { name },
     );
     const todos = result.records.map((r) => {
@@ -104,8 +107,17 @@ app.get("/api/todolists/:name/todos", async (req, res) => {
         order: typeof r.get("order") === "object" ? r.get("order").toNumber() : r.get("order"),
         note: r.get("noteText") != null ? { text: r.get("noteText") } : undefined,
       };
-      const labelItemId = r.get("labelItemId");
-      return labelItemId != null ? { ...base, labelItemId } : base;
+      // updatedAt/updatedBy only exist on todos touched via POST /api/ops, so
+      // include them conditionally (like labelItemId) to keep older todos clean.
+      let mapped = r.get("labelItemId") != null ? { ...base, labelItemId: r.get("labelItemId") } : base;
+      const updatedAt = r.get("updatedAt");
+      if (updatedAt != null) {
+        mapped = { ...mapped, updatedAt: typeof updatedAt === "object" ? updatedAt.toNumber() : updatedAt };
+      }
+      if (r.get("updatedBy") != null) {
+        mapped = { ...mapped, updatedBy: r.get("updatedBy") };
+      }
+      return mapped;
     });
     res.json(todos);
   } catch (e) {
@@ -275,6 +287,36 @@ app.put("/api/todos/:todoId/note", async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Failed to update note" });
+  } finally {
+    await session.close();
+  }
+});
+
+// POST /api/ops - apply a batch of per-field operations from the client outbox.
+// Ops are applied sequentially in request order; each result echoes the op's
+// status. A validation failure rejects just that op; a DB error fails the whole
+// request with 500 so the client retries the batch (safe: ops are deduped by
+// opId, see ops.js).
+app.post("/api/ops", async (req, res) => {
+  const { ops } = req.body;
+  if (!Array.isArray(ops) || ops.length === 0 || ops.length > 100) {
+    return res.status(400).json({ error: "ops must be an array of 1 to 100 items" });
+  }
+  const session = driver.session();
+  try {
+    const results = [];
+    for (const op of ops) {
+      const error = validateOp(op);
+      if (error) {
+        results.push({ opId: op?.opId ?? null, status: "rejected", error });
+        continue;
+      }
+      results.push(await applyOp(session, op));
+    }
+    res.json({ results });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to apply ops" });
   } finally {
     await session.close();
   }
@@ -503,7 +545,26 @@ app.delete("/api/labels/:labelId/items/:itemId", async (req, res) => {
   }
 });
 
+// OpLog nodes only need to outlive the client's retry window (seconds), so
+// prune ones older than a few days to keep the dedup index from growing.
+const OP_LOG_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
+async function pruneOpLog() {
+  const session = driver.session();
+  try {
+    await session.run(
+      `MATCH (o:OpLog) WHERE o.appliedAt < timestamp() - $maxAgeMs DETACH DELETE o`,
+      { maxAgeMs: OP_LOG_MAX_AGE_MS },
+    );
+  } catch (e) {
+    console.error("OpLog prune failed", e);
+  } finally {
+    await session.close();
+  }
+}
+
 if (!process.env.VITEST) {
+  pruneOpLog();
+  setInterval(pruneOpLog, 6 * 60 * 60 * 1000).unref?.();
   app.listen(port, () => {
     console.log(`Server ready at http://localhost:${port}`);
   });
