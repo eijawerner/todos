@@ -1,7 +1,7 @@
 // Operation-outbox apply logic.
 //
 // Every todo mutation the frontend makes is a small per-field "op" (see the
-// schema the frontend outbox uses). Offline or online, the client
+// schema in the frontend's src/sync/opTypes.ts). Offline or online, the client
 // appends ops to a persisted outbox and drains them to POST /api/ops, which
 // calls applyOp() for each. Ops are idempotent and deduped by opId (see the
 // OpLog guard below) so an at-least-once retry can never double-apply or
