@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import { Todo, LabelTodo, TodoNote, Label, LabelItem } from "../common/types/Models";
+import { Todo, LabelTodo, Label, LabelItem } from "../common/types/Models";
 
 export const fetchTodoLists = async (): Promise<{ name: string }[]> => {
   const { data } = await apiClient.get("/api/todolists");
@@ -22,56 +22,9 @@ export const fetchTodos = async (listName: string): Promise<Todo[]> => {
   return data;
 };
 
-export const createTodo = async (
-  listName: string,
-  // labelItemId makes the server create a LabelTodo linked to that label item
-  todo: {
-    text: string;
-    todoId: string;
-    checked: boolean;
-    order: number;
-    labelItemId?: string;
-  },
-): Promise<Todo> => {
-  const { data } = await apiClient.post(
-    `/api/todolists/${encodeURIComponent(listName)}/todos`,
-    todo,
-  );
-  return data;
-};
-
-export const updateTodo = async (todo: {
-  todoId: string;
-  text: string;
-  checked: boolean;
-  order: number;
-}): Promise<Todo> => {
-  const { data } = await apiClient.put(`/api/todos/${todo.todoId}`, {
-    text: todo.text,
-    checked: todo.checked,
-    order: todo.order,
-  });
-  return data;
-};
-
-export const deleteTodo = async (todoId: string): Promise<void> => {
-  await apiClient.delete(`/api/todos/${todoId}`);
-};
-
-export const fetchTodoNote = async (
-  todoId: string,
-): Promise<TodoNote | null> => {
-  const { data } = await apiClient.get(`/api/todos/${todoId}/note`);
-  return data;
-};
-
-export const upsertTodoNote = async (
-  todoId: string,
-  text: string,
-): Promise<{ text: string }> => {
-  const { data } = await apiClient.put(`/api/todos/${todoId}/note`, { text });
-  return data;
-};
+// Per-todo writes (create/update/delete/note) now go through the operation
+// outbox -> POST /api/ops (see src/sync/). Only list- and label-level
+// operations remain here as plain REST.
 
 // --------------- Labels ---------------
 

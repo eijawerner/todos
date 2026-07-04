@@ -9,3 +9,9 @@ export function useOutbox(listName: string): Op[] {
   const all = useSyncExternalStore(outbox.subscribe, outbox.getSnapshot, outbox.getSnapshot);
   return useMemo(() => all.filter((op) => op.listName === listName), [all, listName]);
 }
+
+// Total number of unsent ops across all lists, for a "syncing…" indicator.
+const count = () => outbox.getSnapshot().length;
+export function useOutboxCount(): number {
+  return useSyncExternalStore(outbox.subscribe, count, count);
+}
