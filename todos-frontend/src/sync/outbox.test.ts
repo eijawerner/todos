@@ -118,6 +118,28 @@ it("reports rejected ops and drops them", async () => {
   expect(ob.isEmpty()).toBe(true);
 });
 
+it("keeps acked ops in the overlay until onFlushed resolves, then drops them", async () => {
+  // Prevents the add-flicker: the op must stay applied until the confirming
+  // refetch lands, so the todo never vanishes in the ack->refetch gap.
+  let resolveRefetch!: () => void;
+  const refetch = new Promise<void>((res) => {
+    resolveRefetch = res;
+  });
+  const postOps = vi.fn().mockResolvedValue([applied("o1")]);
+  const ob = createOutbox({ storage: fakeStorage(), postOps, isOnline: () => true });
+  ob.setOnFlushed(() => refetch);
+
+  ob.enqueue(op({ opId: "o1", type: "setText", payload: { text: "a" } }));
+  const flushPromise = ob.flush();
+
+  await new Promise((r) => setTimeout(r, 0)); // let flush park on the onFlushed await
+  expect(ob.isEmpty()).toBe(false); // op still applied while refetch is in flight
+
+  resolveRefetch();
+  await flushPromise;
+  expect(ob.isEmpty()).toBe(true); // dropped only after refetch confirmed
+});
+
 it("reloads persisted ops on startup", () => {
   const storage = fakeStorage();
   const first = createOutbox({ storage, postOps: vi.fn(), isOnline: () => false });

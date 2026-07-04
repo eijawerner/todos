@@ -27,7 +27,7 @@ export function createOutbox({ storage, postOps, isOnline }: OutboxDeps) {
   let flushing = false;
   let flushTimer: ReturnType<typeof setTimeout> | null = null;
   let retryIdx = 0;
-  let onFlushed: ((results: OpResult[]) => void) | null = null;
+  let onFlushed: ((results: OpResult[]) => void | Promise<void>) | null = null;
   let onOpsRejected: ((rejected: OpResult[]) => void) | null = null;
 
   function load(): Op[] {
@@ -77,15 +77,29 @@ export function createOutbox({ storage, postOps, isOnline }: OutboxDeps) {
     flushing = true;
     try {
       const results = await postOps(batch);
-      const acked = new Set(results.map((r) => r.opId));
-      // Every op that came back with a status is done (applied/noop/duplicate/
-      // rejected). A transient failure throws instead, keeping the batch.
-      setOps(ops.filter((op) => !acked.has(op.opId)));
       retryIdx = 0;
 
       const rejected = results.filter((r) => r.status === "rejected");
       if (rejected.length && onOpsRejected) onOpsRejected(rejected);
-      if (onFlushed) onFlushed(results);
+
+      // Confirm with the server (refetch) BEFORE dropping the acked ops from the
+      // overlay. Otherwise a just-applied todo briefly disappears in the gap
+      // between the ack and the refetch landing (a visible flicker on add). If
+      // the refetch itself fails we still drop the ops below, to avoid getting
+      // permanently stuck. Ops enqueued during the await are preserved by the
+      // filter (it reads the current `ops`).
+      if (onFlushed) {
+        try {
+          await onFlushed(results);
+        } catch {
+          // ignore — acked ops are dropped regardless
+        }
+      }
+
+      // Every op that came back with a status is done (applied/noop/duplicate/
+      // rejected). A transient failure throws instead, keeping the batch.
+      const acked = new Set(results.map((r) => r.opId));
+      setOps(ops.filter((op) => !acked.has(op.opId)));
 
       flushing = false;
       if (ops.length > 0) scheduleFlush(0); // more than one batch pending
@@ -146,7 +160,7 @@ export function createOutbox({ storage, postOps, isOnline }: OutboxDeps) {
       retryIdx = 0;
       scheduleFlush(0);
     },
-    setOnFlushed: (cb: (results: OpResult[]) => void) => {
+    setOnFlushed: (cb: (results: OpResult[]) => void | Promise<void>) => {
       onFlushed = cb;
     },
     setOnOpsRejected: (cb: (rejected: OpResult[]) => void) => {
