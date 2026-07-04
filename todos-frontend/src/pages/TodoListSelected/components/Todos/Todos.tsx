@@ -28,6 +28,7 @@ import {
 } from "../../../../sync/buildOps";
 import { useSwipeToDismiss } from "../../../../common/hooks/useSwipeToDismiss";
 import { Note } from "./components/Note/Note";
+import { AddToLabelDialog } from "./components/AddToLabelDialog/AddToLabelDialog";
 import { SortableList } from "../SortableList/SortableList";
 import { HeaderBanner } from "../../../../common/components/HeaderBanner/HeaderBanner";
 import { REGULAR_TIMEOUT_BANNER, UNDO_DELETE_TIMEOUT } from '../../../../common/contants/numbers';
@@ -121,6 +122,7 @@ function TodosBase({ listName, onManageLabels }: TodosProps) {
     todoId: string;
     note: TodoNote;
   } | null>(null);
+  const [todoToAddToLabel, setTodoToAddToLabel] = useState<Todo | null>(null);
 
   const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -298,6 +300,14 @@ function TodosBase({ listName, onManageLabels }: TodosProps) {
           onClose={() => setNoteIsVisible(null)}
         />
       )}
+      {todoToAddToLabel !== null && (
+        <AddToLabelDialog
+          todoId={todoToAddToLabel.todoId}
+          todoText={todoToAddToLabel.text}
+          listName={listName}
+          onClose={() => setTodoToAddToLabel(null)}
+        />
+      )}
       {loadTodoData.isLoading && <p style={{ color: 'white'}}>loading...</p>}
       {loadTodoData.error && <p style={{ color: 'white'}}>{`Error: ${loadTodoData.error.message}`}</p>}
       {errorBanner && (
@@ -350,6 +360,7 @@ function TodosBase({ listName, onManageLabels }: TodosProps) {
                   saveTodo={handleEditTodo}
                   addNewItem={() => handleAddTask(listName)}
                   viewNote={viewNote}
+                  addToLabel={setTodoToAddToLabel}
                   inputRef={(el) => {
                     if (el) {
                       todoRefs.current.set(item.todoId, el);

@@ -22,6 +22,7 @@ function renderRow(todo: Todo = regularTodo) {
     saveTodo: vi.fn(),
     addNewItem: vi.fn(),
     viewNote: vi.fn(),
+    addToLabel: vi.fn(),
   };
   render(<TodoRow {...props} />);
   return props;
@@ -90,4 +91,24 @@ it("renders label-todos as read-only text and never saves them", async () => {
   expect(screen.getByText("Tent")).toBeInTheDocument();
   await new Promise((resolve) => setTimeout(resolve, 600)); // past the debounce
   expect(saveTodo).not.toHaveBeenCalled();
+});
+
+it("adds to a label via the row menu on a regular todo", async () => {
+  const { addToLabel } = renderRow();
+
+  const buttons = screen.getAllByRole("button");
+  await userEvent.click(buttons[buttons.length - 1]);
+  await userEvent.click(await screen.findByText("Add to label..."));
+
+  expect(addToLabel).toHaveBeenCalledWith(regularTodo);
+});
+
+it("does not offer 'Add to label' for a todo that is already a label", async () => {
+  renderRow(labelTodo);
+
+  const buttons = screen.getAllByRole("button");
+  await userEvent.click(buttons[buttons.length - 1]); // open the menu
+
+  expect(await screen.findByText("Delete")).toBeInTheDocument();
+  expect(screen.queryByText("Add to label")).not.toBeInTheDocument();
 });

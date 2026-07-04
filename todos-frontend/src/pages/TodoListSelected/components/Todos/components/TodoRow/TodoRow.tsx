@@ -118,6 +118,7 @@ export type TodoRowProps = StyledProps & {
   saveTodo: (todo: Todo) => void;
   addNewItem: () => void;
   viewNote: (id: string) => void;
+  addToLabel: (todo: Todo) => void;
   inputRef?: React.Ref<HTMLInputElement>;
 };
 
@@ -128,6 +129,7 @@ export const TodoRow = ({
   saveTodo,
   addNewItem,
   viewNote,
+  addToLabel,
   inputRef,
 }: TodoRowProps) => {
   const [taskText, setTaskText] = useState(todo.text);
@@ -224,9 +226,19 @@ export const TodoRow = ({
     </StyledTodoRow>
     {menuOpen && createPortal(
       <StyledMenu $top={menuPos.top} $right={menuPos.right} ref={menuDropdownRef}>
+        {!isLabel && (
+          <StyledMenuItem
+            onClick={() => {
+              addToLabel(todo);
+              setMenuOpen(false);
+            }}
+          >
+            Add to label...
+          </StyledMenuItem>
+        )}
         <StyledMenuItem onClick={
           () => {
-            deleteTodo(todo.todoId); 
+            deleteTodo(todo.todoId);
             setMenuOpen(false);
           }}>
           Delete

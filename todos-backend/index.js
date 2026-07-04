@@ -161,6 +161,51 @@ app.post("/api/ops", async (req, res) => {
   }
 });
 
+// POST /api/todos/:todoId/add-to-label - turn a regular Todo into a
+// LabelTodo sourced from an item in the given label. Reuses an existing item
+// with the same text, or creates one. The node is kept (same todoId, order,
+// checked, note) and just relabelled, so its position in the list is preserved.
+app.post("/api/todos/:todoId/add-to-label", async (req, res) => {
+  const { todoId } = req.params;
+  const { labelId } = req.body;
+  if (typeof labelId !== "string" || labelId === "") {
+    return res.status(400).json({ error: "labelId is required" });
+  }
+  const session = driver.session();
+  try {
+    const result = await session.run(
+      `MATCH (t:Todo {todoId: $todoId})
+       MATCH (l:Label {labelId: $labelId})
+       MERGE (li:LabelItem {text: t.text})-[:PART_OF]->(l)
+         ON CREATE SET li.itemId = randomUUID()
+       REMOVE t:Todo
+       SET t:LabelTodo
+       REMOVE t.text
+       MERGE (t)-[:SOURCED_FROM]->(li)
+       RETURN t.todoId AS todoId, li.text AS text, li.itemId AS labelItemId,
+              t.checked AS checked, t.order AS order`,
+      { todoId, labelId },
+    );
+    if (result.records.length === 0) {
+      // No matching regular Todo (missing or already a label-todo) or no label.
+      return res.status(404).json({ error: "Todo or label not found" });
+    }
+    const r = result.records[0];
+    res.json({
+      todoId: r.get("todoId"),
+      text: r.get("text"),
+      checked: r.get("checked"),
+      order: typeof r.get("order") === "object" ? r.get("order").toNumber() : r.get("order"),
+      labelItemId: r.get("labelItemId"),
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to add todo to label" });
+  } finally {
+    await session.close();
+  }
+});
+
 // --------------- Labels ---------------
 
 // GET /api/labels - list all labels with item counts

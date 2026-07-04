@@ -36,6 +36,50 @@ describe("GET /api/labels", () => {
   });
 });
 
+describe("POST /api/todos/:todoId/add-to-label", () => {
+  it("relabels the todo and links it to a label item", async () => {
+    mockRun.mockResolvedValueOnce({
+      records: [
+        record({ todoId: "t1", text: "Tent", labelItemId: "li1", checked: false, order: 3 }),
+      ],
+    });
+
+    const res = await request(app)
+      .post("/api/todos/t1/add-to-label")
+      .send({ labelId: "l1" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      todoId: "t1",
+      text: "Tent",
+      checked: false,
+      order: 3,
+      labelItemId: "li1",
+    });
+    const cypher = mockRun.mock.calls[0][0];
+    expect(cypher).toContain("SET t:LabelTodo");
+    expect(cypher).toContain("SOURCED_FROM");
+    expect(cypher).toContain("MERGE (li:LabelItem");
+  });
+
+  it("responds 400 when labelId is missing", async () => {
+    const res = await request(app).post("/api/todos/t1/add-to-label").send({});
+
+    expect(res.status).toBe(400);
+    expect(mockRun).not.toHaveBeenCalled();
+  });
+
+  it("responds 404 when the todo is missing or already a label-todo", async () => {
+    mockRun.mockResolvedValueOnce(emptyResult);
+
+    const res = await request(app)
+      .post("/api/todos/ghost/add-to-label")
+      .send({ labelId: "l1" });
+
+    expect(res.status).toBe(404);
+  });
+});
+
 describe("POST /api/labels", () => {
   it("creates a label", async () => {
     mockRun

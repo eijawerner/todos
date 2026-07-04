@@ -26,6 +26,20 @@ export const fetchTodos = async (listName: string): Promise<Todo[]> => {
 // outbox -> POST /api/ops (see src/sync/). Only list- and label-level
 // operations remain here as plain REST.
 
+// Add a regular todo's text to a label as an item and turn the todo into a
+// label-todo sourced from it (reusing an item with the same text, or creating
+// one). Online-only.
+export const addTodoToLabel = async (
+  todoId: string,
+  labelId: string,
+): Promise<LabelTodo> => {
+  const { data } = await apiClient.post(
+    `/api/todos/${todoId}/add-to-label`,
+    { labelId },
+  );
+  return data;
+};
+
 // --------------- Labels ---------------
 
 export const fetchLabels = async (): Promise<Label[]> => {
