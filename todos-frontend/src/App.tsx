@@ -2,6 +2,8 @@ import React, { createContext, useState } from "react";
 import { TodoListSelected } from "./pages/TodoListSelected/TodoListSelected";
 import styled, { createGlobalStyle } from "styled-components";
 import { COLOR_DARK_BLUE } from "./common/contants/colors";
+import { NamePrompt } from "./common/components/NamePrompt/NamePrompt";
+import { getIdentity } from "./common/identity";
 
 export const DebugContext = createContext(false);
 
@@ -23,6 +25,9 @@ html {
 
 export const App: React.FC = () => {
   const [debugEnabled, setDebugEnabled] = useState(false);
+  const [needsName, setNeedsName] = useState(
+    () => getIdentity().deviceName == null,
+  );
 
   return (
     <DebugContext.Provider value={debugEnabled}>
@@ -30,6 +35,7 @@ export const App: React.FC = () => {
         onDoubleClick={() => setDebugEnabled(!debugEnabled)}
       >{`${debugEnabled ? "1" : "0"}`}</DebugButton>
       <GlobalStyles />
+      {needsName && <NamePrompt onDone={() => setNeedsName(false)} />}
       <TodoListSelected />
     </DebugContext.Provider>
   );

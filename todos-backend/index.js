@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import neo4j from "neo4j-driver";
 import "dotenv/config";
+import { validateOp, applyOp } from "./ops.js";
 
 const app = express();
 app.use(cors());
@@ -93,7 +94,9 @@ app.get("/api/todolists/:name/todos", async (req, res) => {
               item.checked AS checked,
               item.order AS order,
               n.text AS noteText,
-              li.itemId AS labelItemId`,
+              li.itemId AS labelItemId,
+              item.updatedAt AS updatedAt,
+              item.updatedBy AS updatedBy`,
       { name },
     );
     const todos = result.records.map((r) => {
@@ -104,8 +107,17 @@ app.get("/api/todolists/:name/todos", async (req, res) => {
         order: typeof r.get("order") === "object" ? r.get("order").toNumber() : r.get("order"),
         note: r.get("noteText") != null ? { text: r.get("noteText") } : undefined,
       };
-      const labelItemId = r.get("labelItemId");
-      return labelItemId != null ? { ...base, labelItemId } : base;
+      // updatedAt/updatedBy only exist on todos touched via POST /api/ops, so
+      // include them conditionally (like labelItemId) to keep older todos clean.
+      let mapped = r.get("labelItemId") != null ? { ...base, labelItemId: r.get("labelItemId") } : base;
+      const updatedAt = r.get("updatedAt");
+      if (updatedAt != null) {
+        mapped = { ...mapped, updatedAt: typeof updatedAt === "object" ? updatedAt.toNumber() : updatedAt };
+      }
+      if (r.get("updatedBy") != null) {
+        mapped = { ...mapped, updatedBy: r.get("updatedBy") };
+      }
+      return mapped;
     });
     res.json(todos);
   } catch (e) {
@@ -116,165 +128,34 @@ app.get("/api/todolists/:name/todos", async (req, res) => {
   }
 });
 
-// POST /api/todolists/:name/todos - create a new todo in a list.
-// With labelItemId in the body, a LabelTodo linked to that LabelItem is
-// created instead (used to restore a deleted label-todo via undo).
-app.post("/api/todolists/:name/todos", async (req, res) => {
-  const { name } = req.params;
-  const { text, todoId, checked, order, labelItemId } = req.body;
+// Per-todo writes (create/update/delete/note) are handled by POST /api/ops
+// below. Label-todo restore on undo goes through the addTodo op's labelItemId.
+
+// POST /api/ops - apply a batch of per-field operations from the client outbox.
+// Ops are applied sequentially in request order; each result echoes the op's
+// status. A validation failure rejects just that op; a DB error fails the whole
+// request with 500 so the client retries the batch (safe: ops are deduped by
+// opId, see ops.js).
+app.post("/api/ops", async (req, res) => {
+  const { ops } = req.body;
+  if (!Array.isArray(ops) || ops.length === 0 || ops.length > 100) {
+    return res.status(400).json({ error: "ops must be an array of 1 to 100 items" });
+  }
   const session = driver.session();
   try {
-    if (labelItemId != null) {
-      const result = await session.run(
-        `MATCH (tl:TodoList {name: $name})
-         MATCH (li:LabelItem {itemId: $labelItemId})
-         CREATE (lt:LabelTodo {todoId: $todoId, checked: $checked, order: $order})-[:BELONGS_TO]->(tl)
-         CREATE (lt)-[:SOURCED_FROM]->(li)
-         RETURN li.text AS text`,
-        { name, labelItemId, todoId, checked: checked ?? false, order },
-      );
-      if (result.records.length === 0) {
-        // The source label item no longer exists (e.g. label deleted meanwhile)
-        return res.status(404).json({ error: "Label item not found" });
+    const results = [];
+    for (const op of ops) {
+      const error = validateOp(op);
+      if (error) {
+        results.push({ opId: op?.opId ?? null, status: "rejected", error });
+        continue;
       }
-      return res.json({
-        todoId,
-        text: result.records[0].get("text"),
-        checked: checked ?? false,
-        order,
-        labelItemId,
-      });
+      results.push(await applyOp(session, op));
     }
-    await session.run(
-      `MATCH (tl:TodoList {name: $name})
-       CREATE (t:Todo {todoId: $todoId, text: $text, checked: $checked, order: $order})-[:BELONGS_TO]->(tl)
-       RETURN t`,
-      { name, text, todoId, checked: checked ?? false, order },
-    );
-    res.json({ todoId, text, checked: checked ?? false, order });
+    res.json({ results });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: "Failed to create todo" });
-  } finally {
-    await session.close();
-  }
-});
-
-// PUT /api/todos/:todoId - update a todo (works for both Todo and LabelTodo)
-app.put("/api/todos/:todoId", async (req, res) => {
-  const { todoId } = req.params;
-  const { text, checked, order } = req.body;
-  const session = driver.session();
-  try {
-    const todoResult = await session.run(
-      `MATCH (t:Todo {todoId: $todoId})
-       SET t.text = $text, t.checked = $checked, t.order = $order
-       RETURN t.todoId AS todoId`,
-      { todoId, text, checked, order },
-    );
-    if (todoResult.records.length === 0) {
-      const labelTodoResult = await session.run(
-        `MATCH (lt:LabelTodo {todoId: $todoId})
-         SET lt.checked = $checked, lt.order = $order
-         RETURN lt.todoId AS todoId`,
-        { todoId, checked, order },
-      );
-      if (labelTodoResult.records.length === 0) {
-        return res.status(404).json({ error: "Todo not found" });
-      }
-    }
-    res.json({ todoId, text, checked, order });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Failed to update todo" });
-  } finally {
-    await session.close();
-  }
-});
-
-// DELETE /api/todos/:todoId - delete a todo and its note (both Todo and LabelTodo)
-app.delete("/api/todos/:todoId", async (req, res) => {
-  const { todoId } = req.params;
-  const session = driver.session();
-  try {
-    await session.run(
-      `MATCH (item {todoId: $todoId})
-       WHERE item:Todo OR item:LabelTodo
-       OPTIONAL MATCH (item)-[:HAS_NOTES]->(n:TodoNote)
-       DETACH DELETE n, item`,
-      { todoId },
-    );
-    res.json({ success: true });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Failed to delete todo" });
-  } finally {
-    await session.close();
-  }
-});
-
-// DELETE /api/todos - batch delete todos by IDs
-app.delete("/api/todos", async (req, res) => {
-  const { todoIds } = req.body;
-  const session = driver.session();
-  try {
-    await session.run(
-      `MATCH (item) WHERE (item:Todo OR item:LabelTodo) AND item.todoId IN $todoIds
-       OPTIONAL MATCH (item)-[:HAS_NOTES]->(n:TodoNote)
-       DETACH DELETE n, item`,
-      { todoIds },
-    );
-    res.json({ success: true });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Failed to delete todos" });
-  } finally {
-    await session.close();
-  }
-});
-
-// GET /api/todos/:todoId/note - get a todo's note
-app.get("/api/todos/:todoId/note", async (req, res) => {
-  const { todoId } = req.params;
-  const session = driver.session();
-  try {
-    const result = await session.run(
-      `MATCH (item {todoId: $todoId})-[:HAS_NOTES]->(n:TodoNote)
-       WHERE item:Todo OR item:LabelTodo
-       RETURN n.text AS text`,
-      { todoId },
-    );
-    if (result.records.length === 0) {
-      res.json(null);
-    } else {
-      res.json({ text: result.records[0].get("text") });
-    }
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Failed to fetch note" });
-  } finally {
-    await session.close();
-  }
-});
-
-// PUT /api/todos/:todoId/note - create or update a todo's note (upsert)
-app.put("/api/todos/:todoId/note", async (req, res) => {
-  const { todoId } = req.params;
-  const { text } = req.body;
-  const session = driver.session();
-  try {
-    await session.run(
-      `MATCH (item {todoId: $todoId})
-       WHERE item:Todo OR item:LabelTodo
-       MERGE (item)-[:HAS_NOTES]->(n:TodoNote)
-       SET n.text = $text, n.links = []
-       RETURN n.text AS text`,
-      { todoId, text },
-    );
-    res.json({ text });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Failed to update note" });
+    res.status(500).json({ error: "Failed to apply ops" });
   } finally {
     await session.close();
   }
@@ -503,7 +384,26 @@ app.delete("/api/labels/:labelId/items/:itemId", async (req, res) => {
   }
 });
 
+// OpLog nodes only need to outlive the client's retry window (seconds), so
+// prune ones older than a few days to keep the dedup index from growing.
+const OP_LOG_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
+async function pruneOpLog() {
+  const session = driver.session();
+  try {
+    await session.run(
+      `MATCH (o:OpLog) WHERE o.appliedAt < timestamp() - $maxAgeMs DETACH DELETE o`,
+      { maxAgeMs: OP_LOG_MAX_AGE_MS },
+    );
+  } catch (e) {
+    console.error("OpLog prune failed", e);
+  } finally {
+    await session.close();
+  }
+}
+
 if (!process.env.VITEST) {
+  pruneOpLog();
+  setInterval(pruneOpLog, 6 * 60 * 60 * 1000).unref?.();
   app.listen(port, () => {
     console.log(`Server ready at http://localhost:${port}`);
   });

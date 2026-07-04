@@ -36,80 +36,6 @@ describe("GET /api/labels", () => {
   });
 });
 
-describe("POST /api/todolists/:name/todos", () => {
-  it("creates a LabelTodo linked to the label item when labelItemId is given", async () => {
-    mockRun.mockResolvedValueOnce({ records: [record({ text: "Tent" })] });
-
-    const res = await request(app)
-      .post("/api/todolists/Trip/todos")
-      .send({ todoId: "lt1", checked: true, order: 2, labelItemId: "li1" });
-
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({
-      todoId: "lt1",
-      text: "Tent",
-      checked: true,
-      order: 2,
-      labelItemId: "li1",
-    });
-    expect(mockRun.mock.calls[0][0]).toContain("LabelTodo");
-    expect(mockRun.mock.calls[0][0]).toContain("SOURCED_FROM");
-  });
-
-  it("responds 404 when the source label item no longer exists", async () => {
-    mockRun.mockResolvedValueOnce(emptyResult);
-
-    const res = await request(app)
-      .post("/api/todolists/Trip/todos")
-      .send({ todoId: "lt1", checked: false, order: 2, labelItemId: "gone" });
-
-    expect(res.status).toBe(404);
-  });
-
-  it("creates a regular Todo when no labelItemId is given", async () => {
-    mockRun.mockResolvedValueOnce({ records: [record({})] });
-
-    const res = await request(app)
-      .post("/api/todolists/Trip/todos")
-      .send({ todoId: "t1", text: "Milk", checked: false, order: 1 });
-
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ todoId: "t1", text: "Milk", checked: false, order: 1 });
-    expect(mockRun.mock.calls[0][0]).not.toContain("LabelTodo");
-  });
-});
-
-describe("PUT /api/todos/:todoId", () => {
-  it("falls back to updating a LabelTodo when no Todo matches", async () => {
-    mockRun
-      .mockResolvedValueOnce(emptyResult) // Todo query: no match
-      .mockResolvedValueOnce({ records: [record({ todoId: "lt1" })] }); // LabelTodo query: match
-
-    const res = await request(app)
-      .put("/api/todos/lt1")
-      .send({ text: "Tent", checked: true, order: 3 });
-
-    expect(res.status).toBe(200);
-    expect(mockRun).toHaveBeenCalledTimes(2);
-    expect(mockRun.mock.calls[1][0]).toContain("LabelTodo");
-  });
-
-  // BUG: when neither a Todo nor a LabelTodo matches the id (e.g. the todo was
-  // deleted by a label cascade in another dialog), the endpoint still responds
-  // 200 with the echoed body. The client thinks the update succeeded.
-  it("responds 404 when the id matches neither a Todo nor a LabelTodo", async () => {
-    mockRun
-      .mockResolvedValueOnce(emptyResult) // Todo query: no match
-      .mockResolvedValueOnce(emptyResult); // LabelTodo query: no match either
-
-    const res = await request(app)
-      .put("/api/todos/ghost-id")
-      .send({ text: "Ghost", checked: true, order: 1 });
-
-    expect(res.status).toBe(404);
-  });
-});
-
 describe("POST /api/labels", () => {
   it("creates a label", async () => {
     mockRun
@@ -242,64 +168,6 @@ describe("GET /api/todolists/:name/todos", () => {
   });
 });
 
-describe("DELETE /api/todos/:todoId", () => {
-  it("deletes a todo", async () => {
-    mockRun.mockResolvedValueOnce(emptyResult);
-
-    const res = await request(app).delete("/api/todos/t1");
-
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ success: true });
-  });
-});
-
-describe("DELETE /api/todos (bulk)", () => {
-  it("deletes all given todoIds", async () => {
-    mockRun.mockResolvedValueOnce(emptyResult);
-
-    const res = await request(app)
-      .delete("/api/todos")
-      .send({ todoIds: ["a", "b"] });
-
-    expect(res.status).toBe(200);
-    expect(mockRun.mock.calls[0][1]).toEqual({ todoIds: ["a", "b"] });
-  });
-});
-
-describe("GET /api/todos/:todoId/note", () => {
-  it("returns the note text", async () => {
-    mockRun.mockResolvedValueOnce({ records: [record({ text: "2% fat" })] });
-
-    const res = await request(app).get("/api/todos/t1/note");
-
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ text: "2% fat" });
-  });
-
-  it("returns null when the todo has no note", async () => {
-    mockRun.mockResolvedValueOnce(emptyResult);
-
-    const res = await request(app).get("/api/todos/t1/note");
-
-    expect(res.status).toBe(200);
-    expect(res.body).toBeNull();
-  });
-});
-
-describe("PUT /api/todos/:todoId/note", () => {
-  it("upserts and echoes the note text", async () => {
-    mockRun.mockResolvedValueOnce(emptyResult);
-
-    const res = await request(app)
-      .put("/api/todos/t1/note")
-      .send({ text: "hello" });
-
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ text: "hello" });
-    expect(mockRun.mock.calls[0][1]).toEqual({ todoId: "t1", text: "hello" });
-  });
-});
-
 describe("DELETE /api/labels/:labelId", () => {
   it("deletes the label, its items and their sourced label-todos", async () => {
     mockRun.mockResolvedValueOnce(emptyResult);
@@ -403,5 +271,197 @@ describe("POST /api/todolists/:name/import-label", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
     expect(mockRun.mock.calls[1][1].nextOrder).toBe(1);
+  });
+});
+
+describe("POST /api/ops", () => {
+  // Every applyOp() runs the OpLog dedup MERGE first, then the op's own query.
+  // fresh() enqueues an OpLog result marking the opId as new (so the op runs).
+  const fresh = () => ({ records: [record({ fresh: true })] });
+  const matched = () => ({ records: [record({ todoId: "t1" })] });
+
+  it("applies a regular addTodo (Todo, not LabelTodo)", async () => {
+    mockRun.mockResolvedValueOnce(fresh()).mockResolvedValueOnce(matched());
+
+    const res = await request(app)
+      .post("/api/ops")
+      .send({
+        ops: [
+          {
+            opId: "o1",
+            type: "addTodo",
+            todoId: "t1",
+            listName: "Trip",
+            payload: { text: "Milk", checked: false, order: 1 },
+          },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.results).toEqual([{ opId: "o1", status: "applied" }]);
+    expect(mockRun.mock.calls[0][0]).toContain("OpLog");
+    expect(mockRun.mock.calls[1][0]).toContain("Todo");
+    expect(mockRun.mock.calls[1][0]).not.toContain("LabelTodo");
+  });
+
+  it("applies a label-variant addTodo linked via SOURCED_FROM", async () => {
+    mockRun.mockResolvedValueOnce(fresh()).mockResolvedValueOnce(matched());
+
+    const res = await request(app)
+      .post("/api/ops")
+      .send({
+        ops: [
+          {
+            opId: "o1",
+            type: "addTodo",
+            todoId: "lt1",
+            listName: "Trip",
+            labelItemId: "li1",
+            payload: { text: "Tent", checked: false, order: 2 },
+          },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.results).toEqual([{ opId: "o1", status: "applied" }]);
+    expect(mockRun.mock.calls[1][0]).toContain("SOURCED_FROM");
+  });
+
+  it("applies setText against a Todo only", async () => {
+    mockRun.mockResolvedValueOnce(fresh()).mockResolvedValueOnce(matched());
+
+    const res = await request(app)
+      .post("/api/ops")
+      .send({ ops: [{ opId: "o1", type: "setText", todoId: "t1", payload: { text: "Eggs" } }] });
+
+    expect(res.body.results).toEqual([{ opId: "o1", status: "applied" }]);
+    expect(mockRun.mock.calls[1][0]).toContain("(item:Todo");
+    expect(mockRun.mock.calls[1][0]).not.toContain("LabelTodo");
+  });
+
+  it("applies setChecked", async () => {
+    mockRun.mockResolvedValueOnce(fresh()).mockResolvedValueOnce(matched());
+
+    const res = await request(app)
+      .post("/api/ops")
+      .send({ ops: [{ opId: "o1", type: "setChecked", todoId: "t1", payload: { checked: true } }] });
+
+    expect(res.body.results).toEqual([{ opId: "o1", status: "applied" }]);
+    expect(mockRun.mock.calls[1][1].checked).toBe(true);
+  });
+
+  it("applies move", async () => {
+    mockRun.mockResolvedValueOnce(fresh()).mockResolvedValueOnce(matched());
+
+    const res = await request(app)
+      .post("/api/ops")
+      .send({ ops: [{ opId: "o1", type: "move", todoId: "t1", payload: { order: 2.5 } }] });
+
+    expect(res.body.results).toEqual([{ opId: "o1", status: "applied" }]);
+    expect(mockRun.mock.calls[1][1].order).toBe(2.5);
+  });
+
+  it("applies deleteTodo", async () => {
+    mockRun
+      .mockResolvedValueOnce(fresh())
+      .mockResolvedValueOnce({ records: [record({ deletedId: "t1" })] });
+
+    const res = await request(app)
+      .post("/api/ops")
+      .send({ ops: [{ opId: "o1", type: "deleteTodo", todoId: "t1", payload: {} }] });
+
+    expect(res.body.results).toEqual([{ opId: "o1", status: "applied" }]);
+    expect(mockRun.mock.calls[1][0]).toContain("DETACH DELETE");
+  });
+
+  it("applies setNote", async () => {
+    mockRun.mockResolvedValueOnce(fresh()).mockResolvedValueOnce(matched());
+
+    const res = await request(app)
+      .post("/api/ops")
+      .send({ ops: [{ opId: "o1", type: "setNote", todoId: "t1", payload: { text: "buy 2%" } }] });
+
+    expect(res.body.results).toEqual([{ opId: "o1", status: "applied" }]);
+    expect(mockRun.mock.calls[1][0]).toContain("HAS_NOTES");
+  });
+
+  it("reports noop when the target todo is missing", async () => {
+    mockRun.mockResolvedValueOnce(fresh()).mockResolvedValueOnce(emptyResult);
+
+    const res = await request(app)
+      .post("/api/ops")
+      .send({ ops: [{ opId: "o1", type: "setChecked", todoId: "gone", payload: { checked: true } }] });
+
+    expect(res.body.results).toEqual([{ opId: "o1", status: "noop" }]);
+  });
+
+  it("reports duplicate and skips the write when the opId was already applied", async () => {
+    mockRun.mockResolvedValueOnce({ records: [record({ fresh: false })] });
+
+    const res = await request(app)
+      .post("/api/ops")
+      .send({ ops: [{ opId: "o1", type: "setText", todoId: "t1", payload: { text: "x" } }] });
+
+    expect(res.body.results).toEqual([{ opId: "o1", status: "duplicate" }]);
+    expect(mockRun).toHaveBeenCalledTimes(1); // only the OpLog MERGE, no op write
+  });
+
+  it("rejects an invalid op without touching the database", async () => {
+    const res = await request(app)
+      .post("/api/ops")
+      .send({ ops: [{ opId: "o1", type: "setChecked", todoId: "t1", payload: {} }] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.results[0].opId).toBe("o1");
+    expect(res.body.results[0].status).toBe("rejected");
+    expect(res.body.results[0].error).toEqual(expect.any(String));
+    expect(mockRun).not.toHaveBeenCalled();
+  });
+
+  it("returns results in request order for a mixed batch", async () => {
+    mockRun
+      .mockResolvedValueOnce(fresh()) // op1 OpLog
+      .mockResolvedValueOnce(matched()) // op1 setText
+      .mockResolvedValueOnce(fresh()) // op3 OpLog (op2 is rejected, no DB)
+      .mockResolvedValueOnce(matched()); // op3 setChecked
+
+    const res = await request(app)
+      .post("/api/ops")
+      .send({
+        ops: [
+          { opId: "o1", type: "setText", todoId: "t1", payload: { text: "a" } },
+          { opId: "o2", type: "setChecked", todoId: "t2", payload: {} }, // invalid
+          { opId: "o3", type: "setChecked", todoId: "t3", payload: { checked: true } },
+        ],
+      });
+
+    expect(res.body.results).toEqual([
+      { opId: "o1", status: "applied" },
+      { opId: "o2", status: "rejected", error: expect.any(String) },
+      { opId: "o3", status: "applied" },
+    ]);
+  });
+
+  it("responds 400 when ops is not an array", async () => {
+    const res = await request(app).post("/api/ops").send({ ops: "nope" });
+
+    expect(res.status).toBe(400);
+    expect(mockRun).not.toHaveBeenCalled();
+  });
+
+  it("responds 400 on an empty batch", async () => {
+    const res = await request(app).post("/api/ops").send({ ops: [] });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("responds 500 when a DB error occurs mid-batch so the client retries", async () => {
+    mockRun.mockResolvedValueOnce(fresh()).mockRejectedValueOnce(new Error("db down"));
+
+    const res = await request(app)
+      .post("/api/ops")
+      .send({ ops: [{ opId: "o1", type: "setText", todoId: "t1", payload: { text: "a" } }] });
+
+    expect(res.status).toBe(500);
   });
 });

@@ -1,30 +1,31 @@
 import styled from "styled-components";
 import {
-  ChangeRequest,
   StyledProps,
   RegularTodo,
   Todo,
   TodoNote,
   isLabelTodo,
 } from "../../../../common/types/Models";
-import React, { useCallback, useEffect, useState, ReactNode, useRef } from "react";
+import React, { useEffect, useState, ReactNode, useRef, useMemo } from "react";
 import { style } from "./Todos.style";
 import { TodoRow } from "./components/TodoRow/TodoRow";
 import { Button } from "../../../../common/components/Button/Button";
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
-import {
-  fetchTodos,
-  createTodo,
-  updateTodo,
-  deleteTodo as deleteTodoApi,
-  fetchTodoNote,
-  upsertTodoNote,
-} from "../../../../api/todoApi";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchTodos } from "../../../../api/todoApi";
 import { COLOR_GREY_LIGHT, COLOR_RED, COLOR_WHITE } from "../../../../common/contants/colors";
+import { outbox } from "../../../../sync/outbox";
+import { useOutbox } from "../../../../sync/useOutbox";
+import { applyOps } from "../../../../sync/overlay";
+import { computeOrderBetween } from "../../../../sync/order";
+import { Op } from "../../../../sync/opTypes";
+import {
+  buildAddTodoOp,
+  buildSetTextOp,
+  buildSetCheckedOp,
+  buildMoveOp,
+  buildDeleteTodoOp,
+  buildSetNoteOp,
+} from "../../../../sync/buildOps";
 import { useSwipeToDismiss } from "../../../../common/hooks/useSwipeToDismiss";
 import { Note } from "./components/Note/Note";
 import { SortableList } from "../SortableList/SortableList";
@@ -98,30 +99,33 @@ const SwipeableRow= ({
   );
 }
 
-const executeSequentially = (promiseFactories: any) => {
-  let result = Promise.resolve();
-  promiseFactories.forEach((promiseFactory: any) => {
-    result = result.then(promiseFactory);
-  });
-  return result;
-};
+// Given the todo ids before and after a single drag, returns the id that moved
+// (or null if nothing changed). Used to emit ONE fractional move op instead of
+// renumbering the whole list.
+function findMovedId(oldIds: string[], newIds: string[]): string | null {
+  if (oldIds.length !== newIds.length) return null;
+  let start = 0;
+  while (start < oldIds.length && oldIds[start] === newIds[start]) start++;
+  if (start === oldIds.length) return null; // unchanged
+  let end = oldIds.length - 1;
+  while (end >= 0 && oldIds[end] === newIds[end]) end--;
+  // The moved item is either the one that slid down (oldIds[start] === newIds[end])
+  // or the one that slid up (newIds[start]).
+  return newIds[end] === oldIds[start] ? newIds[end] : newIds[start];
+}
 
 function TodosBase({ listName, onManageLabels }: TodosProps) {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [changes, setChanges] = useState<ChangeRequest[]>([]);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
-  const [deletedTodo, setDeletedTodo] = useState<Todo | null>(null);
+  const [deletedTodo, setDeletedTodo] = useState<{ todo: Todo; opId: string } | null>(null);
   const [noteIsVisible, setNoteIsVisible] = useState<{
     todoId: string;
     note: TodoNote;
   } | null>(null);
 
-  // Online state
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
   const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const deletePromiseRef = useRef<Promise<void> | null>(null);
+  const pendingFocusRef = useRef<string | null>(null);
+  const todoRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   const showErrorBanner = (message: string, timeout?: number) => {
     if (errorTimeoutRef.current) {
@@ -135,441 +139,153 @@ function TodosBase({ listName, onManageLabels }: TodosProps) {
         errorTimeoutRef.current = null;
       }, timeout);
     }
-  }
+  };
 
   const queryClient = useQueryClient();
 
-  // Query
+  // Server state, polled. Polling pauses while the outbox has unsent ops so a
+  // refetch can't clobber the local overlay mid-edit; a successful flush
+  // invalidates and resumes it (wired in index.tsx / below).
   const loadTodoData = useQuery({
     queryKey: ["todos", listName],
     queryFn: () => fetchTodos(listName),
+    refetchInterval: () => (outbox.isEmpty() ? 12_000 : false),
+    refetchOnWindowFocus: true,
   });
 
-  // Mutations
-  const updateTodoMutation = useMutation({
-    mutationFn: updateTodo,
-  });
+  // The rendered list = server todos with pending ops overlaid, sorted.
+  const pendingOps = useOutbox(listName);
+  const todos = useMemo(
+    () => applyOps(loadTodoData.data ?? [], pendingOps),
+    [loadTodoData.data, pendingOps],
+  );
 
-  const createTodoMutation = useMutation({
-    mutationFn: (params: {
-      listName: string;
-      todo: {
-        text: string;
-        todoId: string;
-        checked: boolean;
-        order: number;
-        labelItemId?: string;
-      };
-    }) => createTodo(params.listName, params.todo),
-  });
+  const enqueue = (op: Op) => outbox.enqueue(op);
 
-  const deleteTodoMutation = useMutation({
-    mutationFn: deleteTodoApi,
-  });
-
-  const upsertNoteMutation = useMutation({
-    mutationFn: (params: { todoId: string; text: string }) =>
-      upsertTodoNote(params.todoId, params.text),
-  });
-
+  // A transient network failure is retried by the outbox (not reverted); only a
+  // server rejection surfaces to the user.
   useEffect(() => {
-    // Update network status
-    const handleStatusChange = () => {
-      console.log("STATUS CHANGED", navigator.onLine);
-      setIsOnline(navigator.onLine);
-      if (navigator.onLine) {
-        console.log("ONLINE AGAIN!");
-        console.log("CURRENT changes", changes);
-        if (changes.length > 0) {
-          console.log("save changes!", changes);
-          let promises: (() => Promise<any>)[] = [];
-          changes.forEach((change) => {
-            if (change.type === "update") {
-              console.log("update todo change");
-              const editPromise = () =>
-                updateTodoMutation.mutateAsync({ ...change.todo });
-              promises.push(editPromise);
-            } else if (change.type === "add") {
-              console.log("add todo change", { ...change.todo });
-              const addPromise = () =>
-                createTodoMutation.mutateAsync({
-                  listName,
-                  todo: {
-                    text: change.todo.text,
-                    todoId: change.todo.todoId,
-                    checked: change.todo.checked,
-                    order: change.todo.order,
-                  },
-                });
-              promises.push(addPromise);
-            } else if (change.type === "delete") {
-              const deletePromise = () =>
-                deleteTodoMutation.mutateAsync(change.todo.todoId);
-              promises.push(deletePromise);
-            }
-          });
-
-          executeSequentially(promises)
-            .then(() => {
-              console.log("successfully synced changes");
-              setChanges([]);
-              reloadTodosList();
-            })
-            .catch(() => {
-              console.log("failed to sync all changes");
-              setChanges([]);
-            });
-        } else {
-          reloadTodosList();
-        }
-      }
-    };
-
-    console.log("add online/offline event listener");
-    window.addEventListener("online", handleStatusChange);
-    window.addEventListener("offline", handleStatusChange);
-
-    return () => {
-      console.log("remove online/offline event listener");
-      window.removeEventListener("online", handleStatusChange);
-      window.removeEventListener("offline", handleStatusChange);
-    };
-  }, [changes]);
-
-  useEffect(() => {
-    console.log("changes", changes);
-  }, [changes]);
-
-  const todoRefs = useRef<Map<string, HTMLInputElement>>(new Map());
-
-  const getSortedTodos = (todoList: Todo[]) => {
-    return [...todoList].sort((t1, t2) => {
-      if (t1.order > t2.order) {
-        return 1;
-      } else if (t1.order < t2.order) {
-        return -1;
-      }
-      return 0;
+    outbox.setOnOpsRejected(() => {
+      showErrorBanner("Some changes couldn't be saved", REGULAR_TIMEOUT_BANNER);
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
     });
-  };
-
-  const sortAndSetTodos = (todoList: Todo[]) => {
-    setTodos(getSortedTodos(todoList));
-  };
+  }, [queryClient]);
 
   const setFocusToTodo = (todoId: string) => {
     const ref = todoRefs.current.get(todoId);
-    if (ref) {
-      ref.focus();
-    }
+    if (ref) ref.focus();
   };
 
+  // Focus a newly added todo once it has rendered from the overlay.
   useEffect(() => {
-    const todoList: Todo[] = loadTodoData.data ?? [];
-    // Don't overwrite if there are changes locally that needs to be saved first
-    if (changes.length === 0) {
-      sortAndSetTodos(todoList);
+    if (pendingFocusRef.current) {
+      setFocusToTodo(pendingFocusRef.current);
+      pendingFocusRef.current = null;
     }
-  }, [listName, loadTodoData.data]);
+  }, [todos]);
 
   const reloadTodosList = () => {
     queryClient.invalidateQueries({ queryKey: ["todos", listName] });
   };
 
-  const handleCheckTodo = (todo: Todo, checked: boolean) => {
-    const otherTodos = todos.filter((t) => t.todoId !== todo.todoId);
-
-    // Put todo last of checked todos, works both if it just got checked or unchecked
-    const checkedTodosAndCurrentChangedTodo = otherTodos
-      .filter((t) => t.checked)
-      .concat({
-        ...todo,
-        checked,
-      });
-    const uncheckedTodos = otherTodos.filter((t) => !t.checked);
-    const newTodos = checkedTodosAndCurrentChangedTodo
-      .concat(uncheckedTodos)
-      .map((todo, idx) => {
-        return {
-          ...todo,
-          order: idx,
-        };
-      });
-
-    const oldTodos = [...todos];
-    setTodos(newTodos);
-    updateMultipleTodos(newTodos)
-      .then(() => reloadTodosList())
-      .catch((e) => {
-        setTodos(oldTodos);
-        showErrorBanner("Failed to update task", REGULAR_TIMEOUT_BANNER);
-        console.error("Error updating todos:", e);
-      });
-  };
-
-  const handleEditTodo = (todo: Todo) => {
-    if (isLabelTodo(todo)) return;
-    const editChange: ChangeRequest = {
-      type: "update",
-      todo: todo,
-      id: crypto.randomUUID(),
-    };
-    console.log("edit todo", todo.text);
-
-    if (isOnline) {
-      console.log("handleEditTodo is ONLINE");
-      const oldTodos = [...todos];
-      const newTodos = todos.map((t) => {
-        if (t.todoId === todo.todoId) {
-          return todo;
-        } else {
-          return t;
-        }
-      });
-      setTodos(newTodos);
-      updateTodoMutation.mutate({ ...todo }, {
-        onError: (error) => {
-          setTodos(oldTodos);
-          showErrorBanner("Failed to edit task", REGULAR_TIMEOUT_BANNER);
-          console.error('failed to edit task', error);
-        },
-      });
+  // Emit a single fractional move, or renumber the whole list when the gap
+  // between neighbours is exhausted.
+  const repositionOrRenormalize = (
+    movedId: string,
+    prevOrder: number | null,
+    nextOrder: number | null,
+    finalOrder: Todo[],
+  ) => {
+    const result = computeOrderBetween(prevOrder, nextOrder);
+    if (result === "renormalize") {
+      finalOrder.forEach((t, i) => enqueue(buildMoveOp(listName, t.todoId, i + 1)));
     } else {
-      console.log("add change", editChange);
-      setChanges([...changes, editChange]);
+      enqueue(buildMoveOp(listName, movedId, result));
     }
   };
 
-  // Sync with latest todo list every minute
-  // useInterval(reloadTodosList, 60 * 1000);
+  const handleCheckTodo = (todo: Todo, checked: boolean) => {
+    enqueue(buildSetCheckedOp(listName, todo.todoId, checked));
 
-  const handleAddTask = useCallback(
-    (listName: string) => {
-      const uuid = crypto.randomUUID();
-      // reload first to get latest list?
-      const order =
-        todos.length > 0 ? todos[todos.length - 1].order + 1.0 : 1.0;
-      const newTodoItem: RegularTodo = {
-        text: "",
-        todoId: uuid,
-        checked: false,
-        order: order,
-      };
-      const addChange: ChangeRequest = {
-        type: "add",
-        todo: newTodoItem,
-        id: crypto.randomUUID(),
-      };
+    // Keep the checked-first UX: move the toggled todo to the boundary between
+    // the checked and unchecked groups — one move instead of N.
+    const others = todos.filter((t) => t.todoId !== todo.todoId);
+    const checkedOthers = others.filter((t) => t.checked);
+    const uncheckedOthers = others.filter((t) => !t.checked);
+    const prevOrder = checkedOthers.length ? checkedOthers[checkedOthers.length - 1].order : null;
+    const nextOrder = uncheckedOthers.length ? uncheckedOthers[0].order : null;
+    const finalOrder = [...checkedOthers, { ...todo, checked }, ...uncheckedOthers];
+    repositionOrRenormalize(todo.todoId, prevOrder, nextOrder, finalOrder);
+  };
 
-      // Add locally first then update data as well
-      // todo add id or timestamp to change request as well, to know which one to remove when succeeds
-      setTodos([...todos, newTodoItem]);
+  const handleEditTodo = (todo: Todo) => {
+    if (isLabelTodo(todo)) return; // label-todo text is owned by its LabelItem
+    enqueue(buildSetTextOp(listName, todo.todoId, todo.text));
+  };
 
-      if (isOnline) {
-        createTodoMutation.mutate(
-          {
-            listName,
-            todo: {
-              text: newTodoItem.text,
-              todoId: newTodoItem.todoId,
-              checked: newTodoItem.checked,
-              order: newTodoItem.order,
-            },
-          },
-          {
-            onSuccess: () => {
-              setFocusToTodo(newTodoItem.todoId);
-            },
-            // Alert user and decide if want to retry or skip change?
-            onError: (error) => {
-              setTodos(
-                todos.filter((todo) => todo.todoId !== newTodoItem.todoId),
-              );
-              showErrorBanner("Failed to add task", REGULAR_TIMEOUT_BANNER);
-              console.log("failed to add task", error);
-            },
-          },
-        );
-      } else {
-        // Save change for later when online again
-        console.log("add change", addChange);
-        setChanges([...changes, addChange]);
-      }
-    },
-    [todos, isOnline],
-  );
-
-  const updateMultipleTodos = async (todos: Todo[]) => {
-    const updateOrderPromises = todos.map((todo) => {
-      return updateTodoMutation.mutateAsync({ ...todo });
-    });
-    return await Promise.all(updateOrderPromises);
+  const handleAddTask = (listName: string) => {
+    const uuid = crypto.randomUUID();
+    const order = todos.length > 0 ? todos[todos.length - 1].order + 1.0 : 1.0;
+    const newTodoItem: RegularTodo = {
+      text: "",
+      todoId: uuid,
+      checked: false,
+      order,
+    };
+    pendingFocusRef.current = uuid; // focus once it renders
+    enqueue(buildAddTodoOp(listName, newTodoItem));
   };
 
   const handleDeleteTodo = (id: string) => {
-    // remove locally first
     const todoToDelete = todos.find((todo) => todo.todoId === id);
-    const oldTodos = [...todos];
-    setTodos(todos.filter((todo) => todo.todoId !== id));
 
-    // Clear any previous undo timeout
     if (undoTimeoutRef.current) {
       clearTimeout(undoTimeoutRef.current);
       undoTimeoutRef.current = null;
     }
 
-    // Show undo banner immediately
+    const deleteOp = buildDeleteTodoOp(listName, id);
     if (todoToDelete) {
-      setDeletedTodo(todoToDelete);
+      setDeletedTodo({ todo: todoToDelete, opId: deleteOp.opId });
       undoTimeoutRef.current = setTimeout(() => {
         setDeletedTodo(null);
         undoTimeoutRef.current = null;
       }, UNDO_DELETE_TIMEOUT);
     }
-
-    if (isOnline) {
-      const deletePromise = deleteTodoMutation.mutateAsync(id)
-        .then(() => {
-          console.log(`deleted todo with id=${id}`);
-        })
-        .catch((error) => {
-          setTodos(oldTodos);
-          setDeletedTodo(null);
-          if (undoTimeoutRef.current) {
-            clearTimeout(undoTimeoutRef.current);
-            undoTimeoutRef.current = null;
-          }
-          showErrorBanner("Failed to delete task", REGULAR_TIMEOUT_BANNER);
-          console.error('failed to delete task', error);
-        });
-      deletePromiseRef.current = deletePromise;
-    } else {
-      deletePromiseRef.current = null;
-      // Save for when online again
-      console.log("add delete change");
-      setChanges([
-        ...changes,
-        {
-          type: "delete",
-          todo: { todoId: id, text: "", order: 0, checked: false },
-          id: crypto.randomUUID(),
-        },
-      ]);
-    }
+    enqueue(deleteOp);
   };
 
-  const undoDelete = async () => {
+  const undoDelete = () => {
     if (!deletedTodo) return;
-
     if (undoTimeoutRef.current) {
       clearTimeout(undoTimeoutRef.current);
       undoTimeoutRef.current = null;
     }
-
-    const todoToRestore = deletedTodo;
+    const { todo, opId } = deletedTodo;
     setDeletedTodo(null);
 
-    // Restore locally immediately
-    setTodos((prev) => getSortedTodos([...prev, todoToRestore]));
-
-    // Wait for the delete API call to finish before re-creating
-    if (deletePromiseRef.current) {
-      await deletePromiseRef.current;
-      deletePromiseRef.current = null;
-    }
-
-    // Re-create via API. A label-todo must be restored with its label link,
-    // or it would come back as a plain todo and re-importing the label
-    // would duplicate it.
-    createTodoMutation.mutate(
-      {
-        listName,
-        todo: {
-          text: todoToRestore.text,
-          todoId: todoToRestore.todoId,
-          checked: todoToRestore.checked,
-          order: todoToRestore.order,
-          ...(isLabelTodo(todoToRestore)
-            ? { labelItemId: todoToRestore.labelItemId }
-            : {}),
-        },
-      },
-      {
-        onError: (error) => {
-          setTodos((prev) => prev.filter((t) => t.todoId !== todoToRestore.todoId));
-          showErrorBanner("Failed to restore task", REGULAR_TIMEOUT_BANNER);
-          console.error("failed to restore task", error);
-        },
-      },
-    );
-  };
-
-  const handleAddNote = async (todoId: string) => {
-    const noteText = "";
-    try {
-      await upsertNoteMutation.mutateAsync({ todoId, text: noteText });
-      console.log(`added note to todo with id=${todoId}`);
-
-      // Update local state immediately
-      setTodos((prevTodos) =>
-        prevTodos.map((todo) =>
-          todo.todoId === todoId
-            ? { ...todo, note: { text: noteText, links: [] } }
-            : todo,
-        ),
-      );
-    } catch (error) {
-      console.error('failed to add note', error);
-      showErrorBanner("failed to add note", REGULAR_TIMEOUT_BANNER);
+    if (outbox.getOps().some((o) => o.opId === opId)) {
+      // The delete hasn't flushed yet — cancel it and the todo reappears from
+      // the server overlay (fixes the lost-undo bug by construction).
+      outbox.cancelOp(opId);
+    } else {
+      // Already flushed and deleted server-side — recreate from the snapshot
+      // (a label-todo keeps its link; its note is re-added too).
+      enqueue(buildAddTodoOp(listName, todo));
+      if (todo.note && todo.note.text) {
+        enqueue(buildSetNoteOp(listName, todo.todoId, todo.note.text));
+      }
     }
   };
 
-  const viewNote = async (todoId: string) => {
-    try {
-      let existingNote = await fetchTodoNote(todoId);
-
-      if (!existingNote) {
-        console.log("No note found, creating one...");
-        await handleAddNote(todoId);
-        existingNote = await fetchTodoNote(todoId);
-      }
-
-      if (!existingNote) {
-        console.error(
-          "Still no note found, that is odd since it was just created...",
-        );
-        showErrorBanner("Failed to show note", REGULAR_TIMEOUT_BANNER);
-        return;
-      }
-
-      setNoteIsVisible({ todoId: todoId, note: existingNote });
-    } catch (error) {
-      console.error("failed fetching note", error);
-      showErrorBanner("Failed to load note", REGULAR_TIMEOUT_BANNER);
-    }
+  const viewNote = (todoId: string) => {
+    // The note ships with the todos query, so open straight from the overlay.
+    const todo = todos.find((t) => t.todoId === todoId);
+    setNoteIsVisible({ todoId, note: todo?.note ?? { text: "", links: [] } });
   };
 
   const editNoteText = (todoId: string, noteText: string) => {
-    // Update local state optimistically
-    const oldTodos = [...todos];
-    setTodos((prevTodos) =>
-      prevTodos.map((todo) =>
-        todo.todoId === todoId
-          ? { ...todo, note: { text: noteText, links: [] } }
-          : todo,
-      ),
-    );
-
-    upsertNoteMutation.mutate(
-      { todoId, text: noteText },
-      {
-        onError: (error) => {
-          setTodos(oldTodos);
-          showErrorBanner("Failed to edit note", REGULAR_TIMEOUT_BANNER);
-          console.log("error", error);
-        },
-      },
-    );
+    enqueue(buildSetNoteOp(listName, todoId, noteText));
   };
 
   return (
@@ -609,22 +325,17 @@ function TodosBase({ listName, onManageLabels }: TodosProps) {
           return { ...t, id: t.todoId };
         })}
         onChange={(items) => {
-          const newTodos = items.map((i, idx) => {
-            return {
-              ...i,
-              todoId: i.id,
-              order: idx,
-            };
-          });
-          const oldTodos = [...todos];
-          setTodos(newTodos);
-          updateMultipleTodos(newTodos)
-            .then(() => reloadTodosList())
-            .catch((e) => {
-              setTodos(oldTodos);
-              showErrorBanner("Failed to reorder tasks", REGULAR_TIMEOUT_BANNER);
-              console.error("Error updating todos:", e);
-            });
+          const oldIds = todos.map((t) => t.todoId);
+          const newIds = items.map((i) => i.id);
+          const movedId = findMovedId(oldIds, newIds);
+          if (!movedId) return;
+
+          const byId = new Map(todos.map((t) => [t.todoId, t]));
+          const k = newIds.indexOf(movedId);
+          const prevOrder = k > 0 ? byId.get(newIds[k - 1])!.order : null;
+          const nextOrder = k < newIds.length - 1 ? byId.get(newIds[k + 1])!.order : null;
+          const finalOrder = newIds.map((id) => byId.get(id)!);
+          repositionOrRenormalize(movedId, prevOrder, nextOrder, finalOrder);
         }}
         renderItem={(item) => (
           <SortableList.Item id={item.id}>

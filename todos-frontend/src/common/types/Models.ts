@@ -55,9 +55,3 @@ export interface TodoListResponse {
 export interface TodoListsData {
   todoLists: TodoList[];
 }
-
-export type ChangeRequest = {
-  type: "add" | "delete" | "update";
-  todo: RegularTodo;
-  id: string;
-};

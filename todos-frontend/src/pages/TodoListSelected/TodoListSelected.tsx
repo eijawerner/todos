@@ -25,6 +25,7 @@ import { isAxiosError } from "axios";
 import { TodoListCreateForm } from "./components/TodoListCreateForm/TodoListCreateForm";
 import { TodoListDeleteConfirmDialog } from "./components/TodoListDeleteConfirmDialog/TodoListConfirmDialog";
 import { LabelManagementDialog } from "./components/LabelManagementDialog/LabelManagementDialog";
+import { useOutboxCount } from "../../sync/useOutbox";
 
 type TodoListProps = StyledProps & {};
 
@@ -98,6 +99,7 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
 
   // Online state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const pendingCount = useOutboxCount();
 
   useEffect(() => {
     const handleStatusChange = () => {
@@ -153,6 +155,12 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
 
       {!isOnline && (
         <HeaderBanner message="Disconnected" />
+      )}
+      {pendingCount > 0 && (
+        <HeaderBanner
+          message={`Syncing ${pendingCount} change${pendingCount > 1 ? "s" : ""}…`}
+          mode="success"
+        />
       )}
       <LabelManagementDialog
         isVisible={labelDialogVisible}
