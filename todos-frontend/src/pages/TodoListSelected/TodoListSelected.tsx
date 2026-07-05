@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   useQuery,
   useMutation,
@@ -55,6 +55,9 @@ const sortByListName = (l1: TodoListResponse, l2: TodoListResponse) => {
   return 0;
 };
 
+// Remember the last-opened list across reloads.
+const SELECTED_LIST_KEY = "todos.selectedList.v1";
+
 const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
   const queryClient = useQueryClient();
   const todoListsQuery = useQuery({
@@ -62,14 +65,21 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
     queryFn: fetchTodoLists,
   });
 
-  const [selectedList, setSelectedList] = useState<string>(NONE_SELECTED);
+  const [selectedList, setSelectedList] = useState<string>(
+    () => localStorage.getItem(SELECTED_LIST_KEY) ?? NONE_SELECTED,
+  );
+  // Select a list and remember it so a reload returns to it.
+  const selectList = useCallback((name: string) => {
+    setSelectedList(name);
+    localStorage.setItem(SELECTED_LIST_KEY, name);
+  }, []);
   const [newListFormIsVisible, setNewListFormIsVisible] = useState(false);
   const addListMutation = useMutation({
     mutationFn: (name: string) => createTodoList(name),
     onSuccess: (_data, name) => {
       setNewListFormIsVisible(false);
       queryClient.invalidateQueries({ queryKey: ["todoLists"] });
-      setSelectedList(name);
+      selectList(name);
     },
     onError: (error) => {
       console.error('failed to add list', error);
@@ -117,16 +127,18 @@ const TodoListSelectedUnstyled = ({ className }: TodoListProps) => {
 
   const todoLists: TodoListResponse[] = todoListsQuery.data ?? [];
 
+  // Once lists load, keep the current selection if it still exists (e.g. the
+  // one restored from localStorage); otherwise fall back to the first list.
   useEffect(() => {
-    if (todoLists.length > 0 && selectedList === NONE_SELECTED) {
-      setSelectedList(
-        [...todoLists].sort(sortByListName)[0].name,
-      );
+    if (todoLists.length === 0) return;
+    const stillExists = todoLists.some((l) => l.name === selectedList);
+    if (!stillExists) {
+      selectList([...todoLists].sort(sortByListName)[0].name);
     }
   }, [todoLists]);
 
   const handleSelectTodoList = (name: string) => {
-    setSelectedList(name);
+    selectList(name);
   };
 
   const handleOpenNewListForm = () => {

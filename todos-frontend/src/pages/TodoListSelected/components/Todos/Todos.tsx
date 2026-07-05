@@ -330,6 +330,8 @@ function TodosBase({ listName, onManageLabels }: TodosProps) {
           }}
         />
       )}
+      {!loadTodoData.isLoading && !loadTodoData.error && (
+        <>
       <SortableList
         items={todos.map((t) => {
           return { ...t, id: t.todoId };
@@ -391,6 +393,8 @@ function TodosBase({ listName, onManageLabels }: TodosProps) {
           text={"sync"}
         />
       </div>
+        </>
+      )}
     </>
   );
 }

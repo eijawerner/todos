@@ -23,6 +23,7 @@ function renderPage() {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  localStorage.clear();
   mocked.fetchTodoLists.mockResolvedValue([{ name: "Zoo" }, { name: "Alpha" }]);
   mocked.fetchTodos.mockResolvedValue([]);
 });
@@ -32,6 +33,34 @@ it("auto-selects the alphabetically first list and loads its todos", async () =>
 
   await waitFor(() => expect(screen.getByRole("combobox")).toHaveValue("Alpha"));
   await waitFor(() => expect(mocked.fetchTodos).toHaveBeenCalledWith("Alpha"));
+});
+
+it("restores the last-opened list from localStorage on reload", async () => {
+  localStorage.setItem("todos.selectedList.v1", "Zoo");
+
+  renderPage();
+
+  await waitFor(() => expect(screen.getByRole("combobox")).toHaveValue("Zoo"));
+  await waitFor(() => expect(mocked.fetchTodos).toHaveBeenCalledWith("Zoo"));
+});
+
+it("falls back to the first list when the stored one no longer exists", async () => {
+  localStorage.setItem("todos.selectedList.v1", "Deleted");
+
+  renderPage();
+
+  await waitFor(() => expect(screen.getByRole("combobox")).toHaveValue("Alpha"));
+});
+
+it("persists the selected list to localStorage", async () => {
+  renderPage();
+
+  await waitFor(() => expect(screen.getByRole("combobox")).toHaveValue("Alpha"));
+  await userEvent.selectOptions(screen.getByRole("combobox"), "Zoo");
+
+  await waitFor(() =>
+    expect(localStorage.getItem("todos.selectedList.v1")).toBe("Zoo"),
+  );
 });
 
 it("loads the todos of a list selected in the dropdown", async () => {
