@@ -23,10 +23,10 @@ function TodoListSelectorBase({
 
   return (
     <div>
-      {/*<label htmlFor="todolist">{'Select todo list:'}</label>*/}
       <select
         className={className}
         name={"todolist"}
+        aria-label="todolist"
         value={selected}
         onChange={handleSelectChange}
         disabled={todoLists.length === 0}
